@@ -10,9 +10,6 @@ const { data: perfil, error: errorPerfil } = await supabase
   .eq('id', user?.id)
   .single()
 
-console.log('PERFIL:', perfil)
-console.log('ERROR PERFIL:', errorPerfil)
-
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold text-gray-900">
