@@ -1,0 +1,56 @@
+import { notFound } from 'next/navigation'
+import { obtenerTrabajo } from '@/lib/services/trabajos'
+import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
+import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+
+export default async function DetalleTrabajoPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const { data: t, error } = await obtenerTrabajo(id)
+
+  if (error || !t) notFound()
+
+  return (
+    <div className="p-6">
+      <h1 className="mb-1 text-xl font-semibold text-gray-900">{t.numero}</h1>
+      <p className="mb-6 text-sm text-gray-500">
+        {t.clientes?.nombre_razon_social} · {t.clientes?.telefono}
+      </p>
+
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="rounded-lg border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">Estado</p>
+          <p className="text-lg font-semibold">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">Estado de pago</p>
+          <p className="text-lg font-semibold">{ETIQUETAS_ESTADO_FINANCIERO[t.estado_financiero as keyof typeof ETIQUETAS_ESTADO_FINANCIERO]}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">Precio</p>
+          <p className="text-lg font-semibold">{formatearMoneda(t.precio_final)}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 p-4">
+          <p className="text-xs text-gray-500">Saldo</p>
+          <p className={`text-lg font-semibold ${t.saldo > 0 ? 'text-red-600' : ''}`}>
+            {formatearMoneda(t.saldo)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-gray-200 p-4">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900">Descripción</h2>
+        <p className="text-sm text-gray-700">{t.descripcion}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 text-sm">
+        <div><span className="text-gray-500">Fecha de entrada:</span> {formatearFecha(t.fecha_entrada)}</div>
+        <div><span className="text-gray-500">Fecha máxima:</span> {formatearFecha(t.fecha_maxima)}</div>
+        <div><span className="text-gray-500">Fecha de retiro:</span> {formatearFecha(t.fecha_retiro)}</div>
+      </div>
+    </div>
+  )
+}
