@@ -14,3 +14,17 @@ export function formatearFecha(fecha: string | null): string {
   const d = new Date(anio, mes - 1, dia)
   return d.toLocaleDateString('es-AR')
 }
+
+// Devuelve la fecha de HOY en formato "YYYY-MM-DD", en horario de
+// Argentina — evita el corrimiento de un día que da toISOString(),
+// que primero convierte a UTC antes de cortar la fecha.
+export function fechaHoyArgentina(): string {
+  const ahora = new Date()
+  const fechaArgentina = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Cordoba',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(ahora)
+  return fechaArgentina // en-CA da directamente el formato YYYY-MM-DD
+}

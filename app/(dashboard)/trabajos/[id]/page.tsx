@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { obtenerTrabajo } from '@/lib/services/trabajos'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+import CambiarEstado from './cambiar-estado'
 
 export default async function DetalleTrabajoPage({
   params,
@@ -51,6 +52,11 @@ export default async function DetalleTrabajoPage({
         <div><span className="text-gray-500">Fecha máxima:</span> {formatearFecha(t.fecha_maxima)}</div>
         <div><span className="text-gray-500">Fecha de retiro:</span> {formatearFecha(t.fecha_retiro)}</div>
       </div>
+
+            <div className="mt-6 rounded-lg border border-gray-200 p-4">
+        <CambiarEstado trabajoId={t.id} estadoActual={t.estado_operativo} />
+      </div>
+      
     </div>
   )
 }

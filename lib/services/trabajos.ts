@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { trabajoSchema, type TrabajoInput } from '@/lib/validations/trabajo'
 import { revalidatePath } from 'next/cache'
 import type { EstadoOperativo } from '@/lib/types/trabajo'
+import { fechaHoyArgentina } from '@/lib/utils/formato'
 
 export async function listarTrabajos(estados?: EstadoOperativo[]) {
   const supabase = await createClient()
@@ -80,4 +81,50 @@ export async function crearTrabajo(input: TrabajoInput) {
 
   revalidatePath('/trabajos')
   return { data }
+}
+
+export async function cambiarEstadoTrabajo(trabajoId: string, nuevoEstado: EstadoOperativo) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: trabajoActual, error: errorActual } = await supabase
+    .from('trabajos')
+    .select('estado_operativo')
+    .eq('id', trabajoId)
+    .single()
+
+  if (errorActual || !trabajoActual) {
+    return { error: 'No se encontró el trabajo' }
+  }
+
+    const camposExtra: Record<string, string> = {}
+  if (nuevoEstado === 'TERMINADO') {
+    camposExtra.fecha_finalizacion = fechaHoyArgentina()
+  }
+  if (nuevoEstado === 'RETIRADO') {
+    camposExtra.fecha_retiro = fechaHoyArgentina()
+  }
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      estado_operativo: nuevoEstado,
+      modificado_en: new Date().toISOString(),
+      ...camposExtra,
+    })
+    .eq('id', trabajoId)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'cambiar_estado',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { de: trabajoActual.estado_operativo, a: nuevoEstado },
+  })
+
+  revalidatePath('/trabajos')
+  revalidatePath(`/trabajos/${trabajoId}`)
+  return { success: true }
 }
