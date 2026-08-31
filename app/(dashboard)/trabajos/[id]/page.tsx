@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation'
 import { obtenerTrabajo } from '@/lib/services/trabajos'
+import { listarPagosDeTrabajo } from '@/lib/services/pagos'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 import CambiarEstado from './cambiar-estado'
+import SeccionPagos from './pagos'
 
 export default async function DetalleTrabajoPage({
   params,
@@ -13,6 +15,8 @@ export default async function DetalleTrabajoPage({
   const { data: t, error } = await obtenerTrabajo(id)
 
   if (error || !t) notFound()
+
+  const { data: pagos } = await listarPagosDeTrabajo(id)
 
   return (
     <div className="p-6">
@@ -47,16 +51,25 @@ export default async function DetalleTrabajoPage({
         <p className="text-sm text-gray-700">{t.descripcion}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 text-sm">
+      <div className="mb-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
         <div><span className="text-gray-500">Fecha de entrada:</span> {formatearFecha(t.fecha_entrada)}</div>
         <div><span className="text-gray-500">Fecha máxima:</span> {formatearFecha(t.fecha_maxima)}</div>
+        <div><span className="text-gray-500">Fecha de finalización:</span> {formatearFecha(t.fecha_finalizacion)}</div>
         <div><span className="text-gray-500">Fecha de retiro:</span> {formatearFecha(t.fecha_retiro)}</div>
       </div>
 
-            <div className="mt-6 rounded-lg border border-gray-200 p-4">
+      <div className="mb-6">
+        <SeccionPagos
+          trabajoId={t.id}
+          clienteId={t.cliente_id}
+          saldo={t.saldo}
+          pagos={pagos ?? []}
+        />
+      </div>
+
+      <div className="rounded-lg border border-gray-200 p-4">
         <CambiarEstado trabajoId={t.id} estadoActual={t.estado_operativo} />
       </div>
-      
     </div>
   )
 }
