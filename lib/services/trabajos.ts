@@ -159,3 +159,17 @@ export async function cambiarEstadoTrabajo(
 export async function listarParaRetirar() {
   return listarTrabajos(['TERMINADO', 'PARA_RETIRAR'])
 }
+
+export async function listarConDeuda() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('trabajos_con_saldo')
+    .select('*, clientes(nombre_razon_social, telefono, whatsapp)')
+    .gt('saldo', 0)
+    .neq('estado_operativo', 'CANCELADO')
+    .order('saldo', { ascending: false })
+
+  if (error) return { error: error.message }
+  return { data }
+}
