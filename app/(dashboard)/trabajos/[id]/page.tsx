@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
 import { obtenerTrabajo } from '@/lib/services/trabajos'
 import { listarPagosDeTrabajo } from '@/lib/services/pagos'
+import { listarTercerizacionesDeTrabajo } from '@/lib/services/tercerizaciones'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 import CambiarEstado from './cambiar-estado'
 import SeccionPagos from './pagos'
+import SeccionTercerizacion from './tercerizar'
 
 export default async function DetalleTrabajoPage({
   params,
@@ -17,6 +19,7 @@ export default async function DetalleTrabajoPage({
   if (error || !t) notFound()
 
   const { data: pagos } = await listarPagosDeTrabajo(id)
+  const { data: tercerizaciones } = await listarTercerizacionesDeTrabajo(id)
 
   return (
     <div className="p-6">
@@ -65,6 +68,10 @@ export default async function DetalleTrabajoPage({
           saldo={t.saldo}
           pagos={pagos ?? []}
         />
+      </div>
+
+      <div className="mb-6">
+        <SeccionTercerizacion trabajoId={t.id} tercerizaciones={tercerizaciones ?? []} />
       </div>
 
       <div className="rounded-lg border border-gray-200 p-4">
