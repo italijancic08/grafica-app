@@ -155,3 +155,7 @@ export async function cambiarEstadoTrabajo(
   revalidatePath(`/trabajos/${trabajoId}`)
   return { success: true }
 }
+
+export async function listarParaRetirar() {
+  return listarTrabajos(['TERMINADO', 'PARA_RETIRAR'])
+}
