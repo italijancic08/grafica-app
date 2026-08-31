@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { crearTrabajo } from '@/lib/services/trabajos'
 import { crearCliente } from '@/lib/services/clientes'
 import type { Cliente } from '@/lib/types/cliente'
+import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta } from '@/lib/types/pago'
 
 export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] }) {
   const router = useRouter()
@@ -14,6 +15,9 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [fechaMaxima, setFechaMaxima] = useState('')
   const [precioFinal, setPrecioFinal] = useState('')
   const [sena, setSena] = useState('0')
+  const [medioPagoSena, setMedioPagoSena] = useState<MedioPago>('efectivo')
+  const [tipoTarjetaSena, setTipoTarjetaSena] = useState<TipoTarjeta>('debito')
+  const [otroDetalleSena, setOtroDetalleSena] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -23,6 +27,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
   const [listaClientes, setListaClientes] = useState(clientes)
   const [creandoCliente, setCreandoCliente] = useState(false)
+
+  const haySena = Number(sena) > 0
 
   async function handleCrearClienteRapido() {
     setCreandoCliente(true)
@@ -49,6 +55,11 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     setError(null)
     setCargando(true)
 
+    const detalleMedioPagoSena =
+      medioPagoSena === 'tarjeta' ? tipoTarjetaSena :
+      medioPagoSena === 'otro' ? otroDetalleSena :
+      undefined
+
     try {
       const resultado = await crearTrabajo({
         cliente_id: clienteId,
@@ -56,6 +67,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
         fecha_maxima: fechaMaxima,
         precio_final: Number(precioFinal),
         sena: Number(sena),
+        medio_pago_sena: haySena ? medioPagoSena : undefined,
+        detalle_medio_pago_sena: haySena ? detalleMedioPagoSena : undefined,
       })
 
       if (resultado.error) {
@@ -172,6 +185,51 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
           />
         </div>
       </div>
+
+      {haySena && (
+        <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+          <p className="mb-2 text-sm font-medium text-gray-700">Medio de pago de la seña</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <select
+                value={medioPagoSena}
+                onChange={(e) => setMedioPagoSena(e.target.value as MedioPago)}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              >
+                {Object.entries(ETIQUETAS_MEDIO_PAGO).map(([valor, etiqueta]) => (
+                  <option key={valor} value={valor}>{etiqueta}</option>
+                ))}
+              </select>
+            </div>
+
+            {medioPagoSena === 'tarjeta' && (
+              <div>
+                <select
+                  value={tipoTarjetaSena}
+                  onChange={(e) => setTipoTarjetaSena(e.target.value as TipoTarjeta)}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                >
+                  {Object.entries(ETIQUETAS_TIPO_TARJETA).map(([valor, etiqueta]) => (
+                    <option key={valor} value={valor}>{etiqueta}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {medioPagoSena === 'otro' && (
+              <div>
+                <input
+                  required
+                  value={otroDetalleSena}
+                  onChange={(e) => setOtroDetalleSena(e.target.value)}
+                  placeholder="Ej: cheque, criptomoneda..."
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

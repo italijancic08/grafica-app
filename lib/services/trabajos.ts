@@ -47,7 +47,10 @@ export async function crearTrabajo(input: TrabajoInput) {
   const { data, error } = await supabase
     .from('trabajos')
     .insert({
-      ...parsed.data,
+      cliente_id: parsed.data.cliente_id,
+      descripcion: parsed.data.descripcion,
+      precio_final: parsed.data.precio_final,
+      sena: parsed.data.sena,
       fecha_maxima: parsed.data.fecha_maxima || null,
       usuario_carga_id: user?.id,
     })
@@ -64,7 +67,8 @@ export async function crearTrabajo(input: TrabajoInput) {
       trabajo_id: data.id,
       cliente_id: parsed.data.cliente_id,
       importe: parsed.data.sena,
-      medio_pago: 'efectivo',
+      medio_pago: parsed.data.medio_pago_sena,
+      detalle_medio_pago: parsed.data.detalle_medio_pago_sena || null,
       usuario_id: user?.id,
       observacion: 'Seña inicial',
     })
@@ -83,7 +87,11 @@ export async function crearTrabajo(input: TrabajoInput) {
   return { data }
 }
 
-export async function cambiarEstadoTrabajo(trabajoId: string, nuevoEstado: EstadoOperativo) {
+export async function cambiarEstadoTrabajo(
+  trabajoId: string,
+  nuevoEstado: EstadoOperativo,
+  confirmarRetiroConDeuda: boolean = false
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -97,7 +105,22 @@ export async function cambiarEstadoTrabajo(trabajoId: string, nuevoEstado: Estad
     return { error: 'No se encontró el trabajo' }
   }
 
-    const camposExtra: Record<string, string> = {}
+  // Si se intenta retirar, verificar el saldo antes de aplicar el cambio
+  if (nuevoEstado === 'RETIRADO') {
+    const { data: conSaldo } = await supabase
+      .from('trabajos_con_saldo')
+      .select('saldo')
+      .eq('id', trabajoId)
+      .single()
+
+    const saldo = conSaldo?.saldo ?? 0
+
+    if (saldo > 0 && !confirmarRetiroConDeuda) {
+      return { requiereConfirmacion: true, saldo }
+    }
+  }
+
+  const camposExtra: Record<string, string> = {}
   if (nuevoEstado === 'TERMINADO') {
     camposExtra.fecha_finalizacion = fechaHoyArgentina()
   }
@@ -121,7 +144,11 @@ export async function cambiarEstadoTrabajo(trabajoId: string, nuevoEstado: Estad
     accion: 'cambiar_estado',
     entidad: 'trabajo',
     entidad_id: trabajoId,
-    detalle: { de: trabajoActual.estado_operativo, a: nuevoEstado },
+    detalle: {
+      de: trabajoActual.estado_operativo,
+      a: nuevoEstado,
+      ...(nuevoEstado === 'RETIRADO' && confirmarRetiroConDeuda ? { retirado_con_deuda: true } : {}),
+    },
   })
 
   revalidatePath('/trabajos')
