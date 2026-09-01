@@ -6,6 +6,7 @@ export interface Material {
   unidad_medida: string
   cantidad_actual: number
   stock_minimo: number
+  costo_unitario: number
   creado_en: string
 }
 
