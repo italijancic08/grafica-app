@@ -1,11 +1,11 @@
 import { z } from 'zod'
 
 export const trabajoSchema = z.object({
-  cliente_id: z.string().uuid('Seleccioná un cliente'),
+  cliente_id: z.uuid('Seleccioná un cliente'),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   fecha_maxima: z.string().optional(),
-  precio_final: z.coerce.number().min(0, 'El precio no puede ser negativo'),
-  sena: z.coerce.number().min(0, 'La seña no puede ser negativa'),
+  precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
+  sena: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'La seña no puede ser negativa'),
   medio_pago_sena: z.enum(['efectivo', 'transferencia', 'tarjeta', 'mixto', 'otro']).optional(),
   detalle_medio_pago_sena: z.string().optional(),
 }).refine(

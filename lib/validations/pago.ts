@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 export const pagoSchema = z.object({
-  trabajo_id: z.string().uuid(),
-  cliente_id: z.string().uuid(),
-  importe: z.coerce.number().positive('El importe debe ser mayor a 0'),
+  trabajo_id: z.uuid(),
+  cliente_id: z.uuid(),
+  importe: z.coerce.number({ error: 'Ingresá un número válido' }).positive('El importe debe ser mayor a 0'),
   medio_pago: z.enum(['efectivo', 'transferencia', 'tarjeta', 'mixto', 'otro']),
   detalle_medio_pago: z.string().optional(),
   observacion: z.string().optional(),
