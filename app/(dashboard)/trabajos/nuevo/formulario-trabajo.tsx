@@ -6,12 +6,14 @@ import { crearTrabajo } from '@/lib/services/trabajos'
 import { crearCliente } from '@/lib/services/clientes'
 import type { Cliente } from '@/lib/types/cliente'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta } from '@/lib/types/pago'
+import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
 
 export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] }) {
   const router = useRouter()
 
   const [clienteId, setClienteId] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [rubro, setRubro] = useState<RubroTrabajo | ''>('')
   const [fechaMaxima, setFechaMaxima] = useState('')
   const [precioFinal, setPrecioFinal] = useState('')
   const [sena, setSena] = useState('0')
@@ -21,7 +23,6 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
-  // Cliente nuevo, sin salir del formulario
   const [mostrarClienteNuevo, setMostrarClienteNuevo] = useState(false)
   const [nombreClienteNuevo, setNombreClienteNuevo] = useState('')
   const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
@@ -53,6 +54,12 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (!rubro) {
+      setError('Seleccioná un rubro')
+      return
+    }
+
     setCargando(true)
 
     const detalleMedioPagoSena =
@@ -64,6 +71,7 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
       const resultado = await crearTrabajo({
         cliente_id: clienteId,
         descripcion,
+        rubro,
         fecha_maxima: fechaMaxima,
         precio_final: Number(precioFinal),
         sena: Number(sena),
@@ -138,6 +146,21 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
             </button>
           </div>
         )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Rubro</label>
+        <select
+          required
+          value={rubro}
+          onChange={(e) => setRubro(e.target.value as RubroTrabajo)}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+        >
+          <option value="">Seleccionar rubro...</option>
+          {Object.entries(ETIQUETAS_RUBRO_TRABAJO).map(([valor, etiqueta]) => (
+            <option key={valor} value={valor}>{etiqueta}</option>
+          ))}
+        </select>
       </div>
 
       <div>

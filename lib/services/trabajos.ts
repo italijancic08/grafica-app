@@ -44,11 +44,12 @@ export async function crearTrabajo(input: TrabajoInput) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data, error } = await supabase
+    const { data, error } = await supabase
     .from('trabajos')
     .insert({
       cliente_id: parsed.data.cliente_id,
       descripcion: parsed.data.descripcion,
+      rubro: parsed.data.rubro,
       precio_final: parsed.data.precio_final,
       sena: parsed.data.sena,
       fecha_maxima: parsed.data.fecha_maxima || null,
