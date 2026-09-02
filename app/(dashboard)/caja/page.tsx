@@ -1,8 +1,11 @@
 import { listarMovimientosDelMes } from '@/lib/services/caja'
+import { obtenerCierreDelMes } from '@/lib/services/caja-mensual'
 import { formatearMoneda, mesActualArgentina, nombreMesAnio } from '@/lib/utils/formato'
 import FormularioMovimientoCaja from './formulario-movimiento'
 import SelectorMes from './selector-mes'
 import FilaMovimientoCaja from './fila-movimiento-caja'
+import CierreMensualControl from './cierre-mensual'
+import ExportarExcel from './exportar-excel'
 
 export default async function CajaPage({
   searchParams,
@@ -11,7 +14,13 @@ export default async function CajaPage({
 }) {
   const { mes } = await searchParams
   const mesFiltro = mes ?? mesActualArgentina()
+  const [anioNum, mesNum] = mesFiltro.split('-').map(Number)
+  const esMesActualOFuturo = mesFiltro >= mesActualArgentina()
+  const esMesFuturo = mesFiltro > mesActualArgentina()
+
   const { data: movimientos, error } = await listarMovimientosDelMes(mesFiltro)
+  const { data: cierre } = await obtenerCierreDelMes(mesNum, anioNum)
+  const bloqueado = (cierre?.cerrado ?? false) || esMesFuturo
 
   const totalIngresos = movimientos?.filter((m) => m.tipo === 'ingreso').reduce((acc, m) => acc + m.monto, 0) ?? 0
   const totalEgresos = movimientos?.filter((m) => m.tipo === 'egreso').reduce((acc, m) => acc + m.monto, 0) ?? 0
@@ -28,7 +37,17 @@ export default async function CajaPage({
     <div className="p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Caja</h1>
-        <SelectorMes mesActual={mesFiltro} />
+        <div className="flex items-center gap-2">
+          <ExportarExcel
+            key={mesFiltro}
+            movimientos={movimientos ?? []}
+            mesFiltro={mesFiltro}
+            totalIngresos={totalIngresos}
+            totalEgresos={totalEgresos}
+            cajaFisica={cajaFisica}
+          />
+          <SelectorMes mesActual={mesFiltro} />
+        </div>
       </div>
       <p className="mb-6 text-sm text-gray-500">Caja de {nombreMesAnio(mesFiltro)}</p>
 
@@ -49,7 +68,17 @@ export default async function CajaPage({
         </div>
       </div>
 
-      <FormularioMovimientoCaja />
+      <div className="mb-6">
+        <CierreMensualControl
+          mes={mesNum}
+          anio={anioNum}
+          cierre={cierre ?? null}
+          cajaFisica={cajaFisica}
+          esMesActualOFuturo={esMesActualOFuturo}
+        />
+      </div>
+
+      <FormularioMovimientoCaja bloqueado={bloqueado} />
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -72,7 +101,7 @@ export default async function CajaPage({
               <tr><td colSpan={7} className="px-4 py-3 text-gray-500">Sin movimientos en este mes.</td></tr>
             )}
             {movimientos?.map((m) => (
-              <FilaMovimientoCaja key={m.id} movimiento={m} />
+              <FilaMovimientoCaja key={m.id} movimiento={m} bloqueado={bloqueado} />
             ))}
           </tbody>
         </table>

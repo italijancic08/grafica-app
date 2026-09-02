@@ -6,7 +6,7 @@ import { registrarMovimientoManual } from '@/lib/services/caja'
 import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO, type Rubro, type TipoMovimientoCaja } from '@/lib/types/caja'
 
-export default function FormularioMovimientoCaja() {
+export default function FormularioMovimientoCaja({ bloqueado = false }: { bloqueado?: boolean }) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
   const [tipo, setTipo] = useState<TipoMovimientoCaja>('egreso')
@@ -46,6 +46,14 @@ export default function FormularioMovimientoCaja() {
     } finally {
       setCargando(false)
     }
+  }
+
+  if (bloqueado) {
+    return (
+      <p className="text-sm text-gray-500">
+        No se pueden cargar movimientos manuales en este mes.
+      </p>
+    )
   }
 
   if (!abierto) {

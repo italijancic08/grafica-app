@@ -7,7 +7,13 @@ import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO, type Rubro, type MovimientoCaja, type TipoMovimientoCaja } from '@/lib/types/caja'
 import { formatearMoneda, diaDelMes } from '@/lib/utils/formato'
 
-export default function FilaMovimientoCaja({ movimiento }: { movimiento: MovimientoCaja }) {
+export default function FilaMovimientoCaja({
+  movimiento,
+  bloqueado = false,
+}: {
+  movimiento: MovimientoCaja
+  bloqueado?: boolean
+}) {
   const router = useRouter()
   const [editando, setEditando] = useState(false)
 
@@ -146,12 +152,14 @@ export default function FilaMovimientoCaja({ movimiento }: { movimiento: Movimie
         <span className={`mr-3 font-medium ${movimiento.tipo === 'ingreso' ? 'text-green-700' : 'text-red-600'}`}>
           {movimiento.tipo === 'ingreso' ? '+' : '-'}{formatearMoneda(movimiento.monto)}
         </span>
-        <button
-          onClick={() => setEditando(true)}
-          className="text-xs font-medium text-gray-600 hover:underline"
-        >
-          Editar
-        </button>
+        {!bloqueado && (
+          <button
+            onClick={() => setEditando(true)}
+            className="text-xs font-medium text-gray-600 hover:underline"
+          >
+            Editar
+          </button>
+        )}
       </td>
     </tr>
   )
