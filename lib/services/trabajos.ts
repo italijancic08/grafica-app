@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { trabajoSchema, type TrabajoInput } from '@/lib/validations/trabajo'
+import { trabajoSchema, trabajoEditSchema, type TrabajoInput, type TrabajoEditInput } from '@/lib/validations/trabajo'
 import { revalidatePath } from 'next/cache'
 import type { EstadoOperativo } from '@/lib/types/trabajo'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
@@ -86,6 +86,60 @@ export async function crearTrabajo(input: TrabajoInput) {
 
   revalidatePath('/trabajos')
   return { data }
+}
+
+export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInput) {
+  const parsed = trabajoEditSchema.safeParse(input)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: trabajoAnterior } = await supabase
+    .from('trabajos')
+    .select('descripcion, rubro, fecha_maxima, precio_final')
+    .eq('id', trabajoId)
+    .single()
+
+  // Evitar que el precio final quede por debajo de lo ya pagado (saldo negativo)
+  const { data: conSaldo } = await supabase
+    .from('trabajos_con_saldo')
+    .select('total_pagado, numero')
+    .eq('id', trabajoId)
+    .single()
+
+  if (conSaldo && parsed.data.precio_final < conSaldo.total_pagado) {
+    return {
+      error: `El precio final ($${parsed.data.precio_final}) no puede ser menor a lo ya pagado ($${conSaldo.total_pagado}) en el trabajo ${conSaldo.numero}.`,
+    }
+  }
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      descripcion: parsed.data.descripcion,
+      rubro: parsed.data.rubro,
+      fecha_maxima: parsed.data.fecha_maxima || null,
+      precio_final: parsed.data.precio_final,
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', trabajoId)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'editar',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { antes: trabajoAnterior, despues: parsed.data },
+  })
+
+  revalidatePath('/trabajos')
+  revalidatePath(`/trabajos/${trabajoId}`)
+  return { success: true }
 }
 
 export async function cambiarEstadoTrabajo(

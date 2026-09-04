@@ -4,18 +4,20 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { registrarPago } from '@/lib/services/pagos'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta, type Pago } from '@/lib/types/pago'
-import { formatearMoneda } from '@/lib/utils/formato'
+import FilaPago from './fila-pago'
 
 export default function SeccionPagos({
   trabajoId,
   clienteId,
   saldo,
   pagos,
+  mesesCerrados = [],
 }: {
   trabajoId: string
   clienteId: string
   saldo: number
   pagos: Pago[]
+  mesesCerrados?: string[]
 }) {
   const router = useRouter()
   const [importe, setImporte] = useState('')
@@ -160,16 +162,11 @@ export default function SeccionPagos({
             <tr><td colSpan={4} className="px-3 py-2 text-gray-500">Sin pagos registrados.</td></tr>
           )}
           {pagos.map((p) => (
-            <tr key={p.id}>
-              <td className="px-3 py-1.5">{p.fecha}</td>
-              <td className="px-3 py-1.5 font-medium">{formatearMoneda(p.importe)}</td>
-              <td className="px-3 py-1.5">
-                {ETIQUETAS_MEDIO_PAGO[p.medio_pago]}
-                {p.detalle_medio_pago && p.medio_pago === 'tarjeta' && ` (${ETIQUETAS_TIPO_TARJETA[p.detalle_medio_pago as TipoTarjeta]})`}
-                {p.detalle_medio_pago && p.medio_pago === 'otro' && ` (${p.detalle_medio_pago})`}
-              </td>
-              <td className="px-3 py-1.5 text-gray-500">{p.observacion ?? '—'}</td>
-            </tr>
+            <FilaPago
+              key={p.id}
+              pago={p}
+              bloqueado={mesesCerrados.includes(p.fecha.slice(0, 7))}
+            />
           ))}
         </tbody>
       </table>

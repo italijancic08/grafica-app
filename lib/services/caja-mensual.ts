@@ -27,6 +27,22 @@ export async function obtenerCierreDelMes(mes: number, anio: number) {
   return { data: data as CierreMensual | null }
 }
 
+// Devuelve los meses ya cerrados como strings "YYYY-MM", para poder marcar
+// como bloqueado cualquier pago cuya fecha caiga en uno de esos meses
+// (mismo criterio que ya se usa en la página de Caja para movimientos)
+export async function listarMesesCerrados() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('caja_mensual')
+    .select('mes, anio')
+    .eq('cerrado', true)
+
+  if (error) return { error: error.message }
+
+  const meses = (data ?? []).map((c) => `${c.anio}-${String(c.mes).padStart(2, '0')}`)
+  return { data: meses }
+}
+
 export async function cerrarMes(mes: number, anio: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

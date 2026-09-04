@@ -7,6 +7,8 @@ import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 import CambiarEstado from './cambiar-estado'
 import SeccionPagos from './pagos'
 import SeccionTercerizacion from './tercerizar'
+import EditarTrabajo from './editar-trabajo'
+import { listarMesesCerrados } from '@/lib/services/caja-mensual'
 
 export default async function DetalleTrabajoPage({
   params,
@@ -20,6 +22,7 @@ export default async function DetalleTrabajoPage({
 
   const { data: pagos } = await listarPagosDeTrabajo(id)
   const { data: tercerizaciones } = await listarTercerizacionesDeTrabajo(id)
+  const { data: mesesCerrados } = await listarMesesCerrados()
 
   return (
     <div className="p-6">
@@ -49,10 +52,13 @@ export default async function DetalleTrabajoPage({
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-gray-200 p-4">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Descripción</h2>
-        <p className="text-sm text-gray-700">{t.descripcion}</p>
-      </div>
+      <EditarTrabajo
+        trabajoId={t.id}
+        descripcion={t.descripcion}
+        rubro={t.rubro}
+        fechaMaxima={t.fecha_maxima}
+        precioFinal={t.precio_final}
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
         <div><span className="text-gray-500">Fecha de entrada:</span> {formatearFecha(t.fecha_entrada)}</div>
@@ -67,6 +73,7 @@ export default async function DetalleTrabajoPage({
           clienteId={t.cliente_id}
           saldo={t.saldo}
           pagos={pagos ?? []}
+          mesesCerrados={mesesCerrados ?? []}
         />
       </div>
 
