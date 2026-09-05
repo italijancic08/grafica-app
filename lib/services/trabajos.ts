@@ -5,6 +5,7 @@ import { trabajoSchema, trabajoEditSchema, type TrabajoInput, type TrabajoEditIn
 import { revalidatePath } from 'next/cache'
 import type { EstadoOperativo } from '@/lib/types/trabajo'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
+import { generarComprobante } from '@/lib/services/facturas'
 
 export async function listarTrabajos(estados?: EstadoOperativo[]) {
   const supabase = await createClient()
@@ -208,6 +209,17 @@ export async function cambiarEstadoTrabajo(
 
   revalidatePath('/trabajos')
   revalidatePath(`/trabajos/${trabajoId}`)
+
+  // Generar el comprobante automáticamente al retirar. Si falla (por
+  // ejemplo, sin datos de empresa aún cargados) no revertimos el cambio
+  // de estado: el trabajo ya quedó como Retirado, solo avisamos.
+  if (nuevoEstado === 'RETIRADO') {
+    const resultadoComprobante = await generarComprobante(trabajoId)
+    if (resultadoComprobante.error) {
+      return { success: true, avisoComprobante: resultadoComprobante.error }
+    }
+  }
+
   return { success: true }
 }
 

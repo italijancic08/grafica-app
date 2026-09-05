@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation'
 import { obtenerTrabajo } from '@/lib/services/trabajos'
 import { listarPagosDeTrabajo } from '@/lib/services/pagos'
 import { listarTercerizacionesDeTrabajo } from '@/lib/services/tercerizaciones'
+import { listarComprobantesDeTrabajo } from '@/lib/services/facturas'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 import CambiarEstado from './cambiar-estado'
 import SeccionPagos from './pagos'
 import SeccionTercerizacion from './tercerizar'
 import EditarTrabajo from './editar-trabajo'
+import SeccionComprobantes from './comprobantes'
 import { listarMesesCerrados } from '@/lib/services/caja-mensual'
 
 export default async function DetalleTrabajoPage({
@@ -23,6 +25,7 @@ export default async function DetalleTrabajoPage({
   const { data: pagos } = await listarPagosDeTrabajo(id)
   const { data: tercerizaciones } = await listarTercerizacionesDeTrabajo(id)
   const { data: mesesCerrados } = await listarMesesCerrados()
+  const { data: comprobantes } = await listarComprobantesDeTrabajo(id)
 
   return (
     <div className="p-6">
@@ -80,6 +83,8 @@ export default async function DetalleTrabajoPage({
       <div className="mb-6">
         <SeccionTercerizacion trabajoId={t.id} tercerizaciones={tercerizaciones ?? []} />
       </div>
+
+      <SeccionComprobantes comprobantes={comprobantes ?? []} />
 
       <div className="rounded-lg border border-gray-200 p-4">
         <CambiarEstado trabajoId={t.id} estadoActual={t.estado_operativo} />

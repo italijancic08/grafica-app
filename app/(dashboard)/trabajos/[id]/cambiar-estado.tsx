@@ -18,11 +18,13 @@ export default function CambiarEstado({
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [avisoDeuda, setAvisoDeuda] = useState<{ saldo: number } | null>(null)
+  const [avisoComprobante, setAvisoComprobante] = useState<string | null>(null)
 
   const opciones = TRANSICIONES_VALIDAS[estadoActual]
 
   async function ejecutarCambio(nuevoEstado: EstadoOperativo, confirmarConDeuda = false) {
     setError(null)
+    setAvisoComprobante(null)
     setCargando(true)
 
     try {
@@ -36,6 +38,10 @@ export default function CambiarEstado({
       if ('error' in resultado && resultado.error) {
         setError(resultado.error)
         return
+      }
+
+      if ('avisoComprobante' in resultado && resultado.avisoComprobante) {
+        setAvisoComprobante(resultado.avisoComprobante)
       }
 
       setAvisoDeuda(null)
@@ -71,8 +77,12 @@ export default function CambiarEstado({
           </button>
         ))}
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-
+     {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {avisoComprobante && (
+        <p className="mt-2 text-sm text-yellow-700">
+          ⚠️ El trabajo se retiró, pero no se pudo generar el comprobante: {avisoComprobante}
+        </p>
+      )}
       {avisoDeuda && (
         <div className="mt-4 rounded-md border border-yellow-300 bg-yellow-50 p-4">
           <p className="mb-3 text-sm font-medium text-yellow-900">
