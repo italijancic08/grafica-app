@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Package, Receipt, AlertCircle,
-  UserCircle, Settings,
+  UserCircle, Settings, History,
 } from 'lucide-react'
 
 const NAV_PRINCIPAL = [
@@ -13,6 +13,7 @@ const NAV_PRINCIPAL = [
   { nombre: 'Stock', href: '/stock', icono: Package },
   { nombre: 'Facturas', href: '/facturas', icono: Receipt },
   { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },
+  { nombre: 'Auditoría', href: '/auditoria', icono: History },
 ]
 
 const NAV_SECUNDARIA = [

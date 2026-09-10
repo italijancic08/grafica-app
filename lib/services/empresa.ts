@@ -2,10 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { empresaSchema, type EmpresaInput } from '@/lib/validations/empresa'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 
-// El sistema es de una sola empresa: siempre hay a lo sumo una fila
-// en la tabla "empresas". Si todavía no se cargó ninguna, devuelve null.
 export async function obtenerEmpresa() {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -25,6 +24,7 @@ export async function actualizarEmpresa(input: EmpresaInput) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: existente } = await supabase
     .from('empresas')
@@ -45,6 +45,13 @@ export async function actualizarEmpresa(input: EmpresaInput) {
     : await supabase.from('empresas').insert(datos)
 
   if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'editar',
+    entidad: 'empresa',
+    detalle: datos,
+  })
 
   revalidatePath('/configuracion')
   return { success: true }

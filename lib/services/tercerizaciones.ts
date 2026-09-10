@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { tercerizacionSchema, type TercerizacionInput } from '@/lib/validations/tercerizacion'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
 
@@ -54,11 +55,11 @@ export async function crearTercerizacion(input: TercerizacionInput) {
     .update({ estado_operativo: 'TERCERIZADO', modificado_en: new Date().toISOString() })
     .eq('id', parsed.data.trabajo_id)
 
-  await supabase.from('auditoria').insert({
-    usuario_id: user?.id,
+  await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'crear',
     entidad: 'tercerizacion',
-    entidad_id: data.id,
+    entidadId: data.id,
     detalle: { trabajo_id: parsed.data.trabajo_id, proveedor: parsed.data.proveedor },
   })
 
@@ -69,6 +70,7 @@ export async function crearTercerizacion(input: TercerizacionInput) {
 
 export async function marcarVuelta(tercerizacionId: string, trabajoId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { error } = await supabase
     .from('tercerizaciones')
@@ -84,6 +86,14 @@ export async function marcarVuelta(tercerizacionId: string, trabajoId: string) {
     .from('trabajos')
     .update({ estado_operativo: 'EN_PRODUCCION', modificado_en: new Date().toISOString() })
     .eq('id', trabajoId)
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'marcar_vuelta',
+    entidad: 'tercerizacion',
+    entidadId: tercerizacionId,
+    detalle: { trabajo_id: trabajoId },
+  })
 
   revalidatePath('/tercerizados')
   revalidatePath(`/trabajos/${trabajoId}`)

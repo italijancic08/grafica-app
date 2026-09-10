@@ -61,3 +61,7 @@ export function diaDelMes(fecha: string): number {
   }).formatToParts(new Date(fecha))
   return Number(partes.find((p) => p.type === 'day')?.value)
 }
+
+export function formatearFechaHora(fechaHora: string): string {
+  return new Date(fechaHora).toLocaleString('es-AR', { timeZone: 'America/Argentina/Cordoba' })
+}

@@ -2,11 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { umbralCajaBajaSchema } from '@/lib/validations/configuracion'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 
 const UMBRAL_CAJA_BAJA_DEFAULT = 10000
 
-// El valor se guarda como jsonb crudo (un número), no como texto.
 export async function obtenerUmbralCajaBaja(): Promise<number> {
   const supabase = await createClient()
   const { data } = await supabase
@@ -26,13 +26,23 @@ export async function actualizarUmbralCajaBaja(input: { monto: number }) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { error } = await supabase
     .from('configuracion')
     .upsert({ clave: 'umbral_caja_baja', valor: parsed.data.monto }, { onConflict: 'clave' })
 
   if (error) return { error: error.message }
 
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'editar',
+    entidad: 'configuracion',
+    entidadId: 'umbral_caja_baja',
+    detalle: { valor: parsed.data.monto },
+  })
+
   revalidatePath('/configuracion')
-  revalidatePath('/') // por si el dashboard vive en home
+  revalidatePath('/')
   return { success: true }
 }

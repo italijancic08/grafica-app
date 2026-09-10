@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { presupuestoSchema, type PresupuestoInput } from '@/lib/validations/presupuesto'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 import type { EstadoPresupuesto } from '@/lib/types/presupuesto'
 import type { RubroTrabajo } from '@/lib/types/trabajo'
@@ -24,6 +25,8 @@ export async function crearPresupuesto(input: PresupuestoInput) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data, error } = await supabase
     .from('presupuestos')
     .insert(parsed.data)
@@ -32,18 +35,36 @@ export async function crearPresupuesto(input: PresupuestoInput) {
 
   if (error) return { error: error.message }
 
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'crear',
+    entidad: 'presupuesto',
+    entidadId: data.id,
+    detalle: { monto: data.monto },
+  })
+
   revalidatePath('/presupuestos')
   return { data }
 }
 
 export async function cambiarEstadoPresupuesto(id: string, estado: EstadoPresupuesto) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { error } = await supabase
     .from('presupuestos')
     .update({ estado })
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'cambiar_estado',
+    entidad: 'presupuesto',
+    entidadId: id,
+    detalle: { a: estado },
+  })
 
   revalidatePath('/presupuestos')
   return { success: true }
@@ -93,11 +114,11 @@ export async function convertirEnTrabajo(presupuestoId: string, rubro: RubroTrab
 
   if (errorUpdate) return { error: errorUpdate.message }
 
-  await supabase.from('auditoria').insert({
-    usuario_id: user?.id,
+  await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'convertir_presupuesto',
     entidad: 'trabajo',
-    entidad_id: trabajo.id,
+    entidadId: trabajo.id,
     detalle: { presupuesto_id: presupuestoId, numero: trabajo.numero },
   })
 

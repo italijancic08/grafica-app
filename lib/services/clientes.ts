@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { clienteSchema, type ClienteInput } from '@/lib/validations/cliente'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 
 export async function listarClientes(busqueda?: string) {
@@ -42,6 +43,8 @@ export async function crearCliente(input: ClienteInput) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data, error } = await supabase
     .from('clientes')
     .insert(parsed.data)
@@ -49,6 +52,14 @@ export async function crearCliente(input: ClienteInput) {
     .single()
 
   if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'crear',
+    entidad: 'cliente',
+    entidadId: data.id,
+    detalle: { nombre_razon_social: data.nombre_razon_social },
+  })
 
   revalidatePath('/clientes')
   return { data }
@@ -61,12 +72,28 @@ export async function actualizarCliente(id: string, input: ClienteInput) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: clienteAnterior } = await supabase
+    .from('clientes')
+    .select('nombre_razon_social, telefono, cuit_cuil')
+    .eq('id', id)
+    .single()
+
   const { error } = await supabase
     .from('clientes')
     .update({ ...parsed.data, modificado_en: new Date().toISOString() })
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'editar',
+    entidad: 'cliente',
+    entidadId: id,
+    detalle: { antes: clienteAnterior, despues: parsed.data },
+  })
 
   revalidatePath('/clientes')
   revalidatePath(`/clientes/${id}`)

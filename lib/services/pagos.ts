@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { pagoSchema, pagoEditSchema, type PagoInput, type PagoEditInput } from '@/lib/validations/pago'
 import { revalidatePath } from 'next/cache'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 
 export async function listarPagosDeTrabajo(trabajoId: string) {
   const supabase = await createClient()
@@ -47,11 +48,11 @@ export async function registrarPago(input: PagoInput) {
 
   if (error) return { error: error.message }
 
-  await supabase.from('auditoria').insert({
-    usuario_id: user?.id,
+    await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'registrar_pago',
     entidad: 'pago',
-    entidad_id: data.id,
+    entidadId: data.id,
     detalle: { trabajo_id: parsed.data.trabajo_id, importe: parsed.data.importe },
   })
 
@@ -129,11 +130,11 @@ export async function actualizarPago(pagoId: string, input: PagoEditInput) {
     return { error: `El pago se actualizó pero falló la sincronización con caja: ${errorCaja.message}` }
   }
 
-  await supabase.from('auditoria').insert({
-    usuario_id: user?.id,
+    await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'editar_pago',
     entidad: 'pago',
-    entidad_id: pagoId,
+    entidadId: pagoId,
     detalle: {
       antes: { importe: pagoActual.importe, medio_pago: pagoActual.medio_pago, detalle_medio_pago: pagoActual.detalle_medio_pago },
       despues: parsed.data,

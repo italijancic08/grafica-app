@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { materialSchema, movimientoSchema, type MaterialInput, type MovimientoInput } from '@/lib/validations/material'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 
 export async function listarMateriales() {
@@ -22,6 +23,8 @@ export async function crearMaterial(input: MaterialInput) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const { data, error } = await supabase
     .from('materiales')
     .insert(parsed.data)
@@ -29,6 +32,14 @@ export async function crearMaterial(input: MaterialInput) {
     .single()
 
   if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'crear',
+    entidad: 'material',
+    entidadId: data.id,
+    detalle: { nombre: data.nombre },
+  })
 
   revalidatePath('/stock')
   return { data }
@@ -72,11 +83,11 @@ export async function registrarMovimiento(input: MovimientoInput) {
     return { error: error.message }
   }
 
-  await supabase.from('auditoria').insert({
-    usuario_id: user?.id,
+  await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'registrar_movimiento',
     entidad: 'material',
-    entidad_id: parsed.data.material_id,
+    entidadId: parsed.data.material_id,
     detalle: { tipo: parsed.data.tipo, cantidad: parsed.data.cantidad },
   })
 
