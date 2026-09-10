@@ -29,6 +29,22 @@ export async function listarMovimientosDelMes(mes?: string) {
   return { data }
 }
 
+// Meses (YYYY-MM, más reciente primero) que tienen al menos un movimiento
+// cargado, para la página /documentos donde se puede descargar el Excel
+// de cualquier mes, esté cerrado o no.
+export async function listarMesesConMovimientos() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('caja_movimientos')
+    .select('fecha')
+    .order('fecha', { ascending: false })
+
+  if (error) return { error: error.message }
+
+  const meses = Array.from(new Set((data ?? []).map((m) => m.fecha.slice(0, 7))))
+  return { data: meses }
+}
+
 export async function registrarMovimientoManual(input: MovimientoCajaInput) {
   const parsed = movimientoCajaSchema.safeParse(input)
   if (!parsed.success) {

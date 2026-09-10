@@ -16,6 +16,19 @@ export async function listarComprobantesDeTrabajo(trabajoId: string) {
   return { data }
 }
 
+// Todos los comprobantes de todos los trabajos, para la página /facturas
+// y para el panel de /documentos.
+export async function listarTodasLasFacturas() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('facturas')
+    .select('*, trabajos(numero), clientes(nombre_razon_social)')
+    .order('creado_en', { ascending: false })
+
+  if (error) return { error: error.message }
+  return { data }
+}
+
 // Genera el comprobante (recibo interno) de un trabajo: crea el registro
 // en "facturas" (el número lo asigna el trigger de la migración 0012),
 // arma el PDF y lo sube al bucket privado "comprobantes". Se llama

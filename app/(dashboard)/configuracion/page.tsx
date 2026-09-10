@@ -1,8 +1,11 @@
 import { obtenerEmpresa } from '@/lib/services/empresa'
+import { obtenerUmbralCajaBaja } from '@/lib/services/configuracion'
 import FormularioEmpresa from './formulario-empresa'
+import FormularioUmbral from './formulario-umbral'
 
 export default async function ConfiguracionPage() {
   const { data: empresa } = await obtenerEmpresa()
+  const umbralActual = await obtenerUmbralCajaBaja()
 
   return (
     <div className="p-6">
@@ -12,6 +15,9 @@ export default async function ConfiguracionPage() {
       </p>
 
       <FormularioEmpresa empresa={empresa ?? null} />
+
+      <h2 className="mt-8 mb-1 text-lg font-semibold text-gray-900">Alertas de caja</h2>
+      <FormularioUmbral umbralActual={umbralActual} />
     </div>
   )
 }
