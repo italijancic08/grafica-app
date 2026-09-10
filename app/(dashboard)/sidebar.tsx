@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Package, Receipt, AlertCircle,
+  LayoutDashboard, Users, Package, Receipt, BarChart3, AlertCircle,
   UserCircle, Settings, History,
 } from 'lucide-react'
 
@@ -12,6 +12,7 @@ const NAV_PRINCIPAL = [
   { nombre: 'Usuarios', href: '/usuarios', icono: Users },
   { nombre: 'Stock', href: '/stock', icono: Package },
   { nombre: 'Facturas', href: '/facturas', icono: Receipt },
+  { nombre: 'Reportes', href: '/reportes', icono: BarChart3 },
   { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },
   { nombre: 'Auditoría', href: '/auditoria', icono: History },
 ]
