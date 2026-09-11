@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearPresupuesto } from '@/lib/services/presupuestos'
+import { crearCliente } from '@/lib/services/clientes'
 import type { Cliente } from '@/lib/types/cliente'
 
 export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[] }) {
@@ -13,6 +14,32 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
   const [monto, setMonto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+
+  const [mostrarClienteNuevo, setMostrarClienteNuevo] = useState(false)
+  const [nombreClienteNuevo, setNombreClienteNuevo] = useState('')
+  const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
+  const [listaClientes, setListaClientes] = useState(clientes)
+  const [creandoCliente, setCreandoCliente] = useState(false)
+
+  async function handleCrearClienteRapido() {
+    setCreandoCliente(true)
+    const resultado = await crearCliente({
+      nombre_razon_social: nombreClienteNuevo,
+      telefono: telefonoClienteNuevo,
+    })
+    setCreandoCliente(false)
+
+    if (resultado.error || !resultado.data) {
+      setError(resultado.error ?? 'No se pudo crear el cliente')
+      return
+    }
+
+    setListaClientes((prev) => [...prev, resultado.data])
+    setClienteId(resultado.data.id)
+    setMostrarClienteNuevo(false)
+    setNombreClienteNuevo('')
+    setTelefonoClienteNuevo('')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -56,57 +83,98 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 p-4">
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Cliente</label>
-        <select
-          required
-          value={clienteId}
-          onChange={(e) => setClienteId(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-gray-200 p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Cliente</label>
+          <div className="flex gap-2">
+            <select
+              required
+              value={clienteId}
+              onChange={(e) => setClienteId(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              <option value="">Seleccionar cliente...</option>
+              {listaClientes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre_razon_social}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setMostrarClienteNuevo((v) => !v)}
+              className="whitespace-nowrap rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+            >
+              + Nuevo
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Descripción</label>
+          <input
+            required
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Monto</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={cargando}
+          className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
         >
-          <option value="">Seleccionar cliente...</option>
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>{c.nombre_razon_social}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Descripción</label>
-        <input
-          required
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          className="w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Monto</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          required
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
+          {cargando ? 'Guardando...' : 'Guardar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbierto(false)}
+          className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
       </div>
 
-      <button
-        type="submit"
-        disabled={cargando}
-        className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-      >
-        {cargando ? 'Guardando...' : 'Guardar'}
-      </button>
-      <button
-        type="button"
-        onClick={() => setAbierto(false)}
-        className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-      >
-        Cancelar
-      </button>
+      {mostrarClienteNuevo && (
+        <div className="flex flex-wrap items-end gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Nombre</label>
+            <input
+              value={nombreClienteNuevo}
+              onChange={(e) => setNombreClienteNuevo(e.target.value)}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Teléfono</label>
+            <input
+              value={telefonoClienteNuevo}
+              onChange={(e) => setTelefonoClienteNuevo(e.target.value)}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleCrearClienteRapido}
+            disabled={creandoCliente || !nombreClienteNuevo}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {creandoCliente ? 'Creando...' : 'Crear y usar'}
+          </button>
+        </div>
+      )}
 
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
     </form>

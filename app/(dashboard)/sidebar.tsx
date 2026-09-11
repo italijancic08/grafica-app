@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Package, Receipt, BarChart3, AlertCircle,
-  UserCircle, Settings, History,
+  UserCircle, Settings, History, Tags,
 } from 'lucide-react'
 
 const NAV_PRINCIPAL = [
   { nombre: 'Panel', href: '/', icono: LayoutDashboard },
   { nombre: 'Usuarios', href: '/usuarios', icono: Users },
   { nombre: 'Stock', href: '/stock', icono: Package },
+  { nombre: 'Lista de precios', href: '/lista-precios', icono: Tags },
   { nombre: 'Facturas', href: '/facturas', icono: Receipt },
   { nombre: 'Reportes', href: '/reportes', icono: BarChart3 },
   { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },

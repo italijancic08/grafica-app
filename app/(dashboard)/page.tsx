@@ -6,6 +6,7 @@ import {
 import { obtenerResumenDashboard } from '@/lib/services/dashboard'
 import { formatearMoneda, formatearFecha, fechaHoyArgentina } from '@/lib/utils/formato'
 import { obtenerUmbralCajaBaja } from '@/lib/services/configuracion'
+import {Tags} from 'lucide-react'
 
 const MODULOS = [
   { nombre: 'Trabajos', href: '/trabajos', icono: ClipboardList },
@@ -20,6 +21,7 @@ const MODULOS = [
   { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },
   { nombre: 'Usuarios', href: '/usuarios', icono: Users },
   { nombre: 'Configuración', href: '/configuracion', icono: Settings },
+  { nombre: 'Lista de precios', href: '/lista-precios', icono: Tags },
 ]
 
 export default async function DashboardPage() {
