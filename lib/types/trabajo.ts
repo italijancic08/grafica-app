@@ -28,6 +28,8 @@ export interface Trabajo {
   fecha_retiro: string | null
   precio_final: number
   sena: number
+  ancho_cm: number | null
+  largo_cm: number | null
   estado_operativo: EstadoOperativo
   usuario_carga_id: string | null
   usuario_responsable_id: string | null

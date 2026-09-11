@@ -12,6 +12,8 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
   const [clienteId, setClienteId] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [monto, setMonto] = useState('')
+  const [anchoCm, setAnchoCm] = useState('')
+  const [largoCm, setLargoCm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -20,6 +22,10 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
   const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
   const [listaClientes, setListaClientes] = useState(clientes)
   const [creandoCliente, setCreandoCliente] = useState(false)
+
+  const m2 = Number(anchoCm) > 0 && Number(largoCm) > 0
+    ? (Number(anchoCm) / 100) * (Number(largoCm) / 100)
+    : null
 
   async function handleCrearClienteRapido() {
     setCreandoCliente(true)
@@ -51,6 +57,8 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
         cliente_id: clienteId,
         descripcion,
         monto: Number(monto),
+        ancho_cm: anchoCm ? Number(anchoCm) : undefined,
+        largo_cm: largoCm ? Number(largoCm) : undefined,
       })
 
       if (resultado.error) {
@@ -61,6 +69,8 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
       setClienteId('')
       setDescripcion('')
       setMonto('')
+      setAnchoCm('')
+      setLargoCm('')
       setAbierto(false)
       router.refresh()
     } catch (err) {
@@ -130,6 +140,32 @@ export default function FormularioPresupuesto({ clientes }: { clientes: Cliente[
             className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
           />
         </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Ancho (cm)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            value={anchoCm}
+            onChange={(e) => setAnchoCm(e.target.value)}
+            className="w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Largo (cm)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            value={largoCm}
+            onChange={(e) => setLargoCm(e.target.value)}
+            className="w-24 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+        </div>
+        {m2 !== null && (
+          <p className="pb-2 text-sm text-gray-500">= {m2.toFixed(2)} m²</p>
+        )}
 
         <button
           type="submit"

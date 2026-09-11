@@ -16,6 +16,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [rubro, setRubro] = useState<RubroTrabajo | ''>('')
   const [fechaMaxima, setFechaMaxima] = useState('')
   const [precioFinal, setPrecioFinal] = useState('')
+  const [anchoCm, setAnchoCm] = useState('')
+  const [largoCm, setLargoCm] = useState('')
   const [sena, setSena] = useState('0')
   const [medioPagoSena, setMedioPagoSena] = useState<MedioPago>('efectivo')
   const [tipoTarjetaSena, setTipoTarjetaSena] = useState<TipoTarjeta>('debito')
@@ -30,6 +32,9 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [creandoCliente, setCreandoCliente] = useState(false)
 
   const haySena = Number(sena) > 0
+  const m2 = Number(anchoCm) > 0 && Number(largoCm) > 0
+    ? (Number(anchoCm) / 100) * (Number(largoCm) / 100)
+    : null
 
   async function handleCrearClienteRapido() {
     setCreandoCliente(true)
@@ -74,6 +79,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
         rubro,
         fecha_maxima: fechaMaxima,
         precio_final: Number(precioFinal),
+        ancho_cm: anchoCm ? Number(anchoCm) : undefined,
+        largo_cm: largoCm ? Number(largoCm) : undefined,
         sena: Number(sena),
         medio_pago_sena: haySena ? medioPagoSena : undefined,
         detalle_medio_pago_sena: haySena ? detalleMedioPagoSena : undefined,
@@ -206,6 +213,37 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
             onChange={(e) => setSena(e.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           />
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Medidas (opcional)</label>
+        <div className="flex items-end gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Ancho (cm)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={anchoCm}
+              onChange={(e) => setAnchoCm(e.target.value)}
+              className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Largo (cm)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              value={largoCm}
+              onChange={(e) => setLargoCm(e.target.value)}
+              className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          {m2 !== null && (
+            <p className="pb-2 text-sm text-gray-500">= {m2.toFixed(2)} m²</p>
+          )}
         </div>
       </div>
 

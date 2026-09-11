@@ -15,6 +15,8 @@ export const trabajoSchema = z.object({
   fecha_maxima: z.string().optional(),
   precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
   sena: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'La seña no puede ser negativa'),
+  ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
+  largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
   medio_pago_sena: z.enum(['efectivo', 'transferencia', 'tarjeta', 'mixto', 'otro']).optional(),
   detalle_medio_pago_sena: z.string().optional(),
 }).refine(

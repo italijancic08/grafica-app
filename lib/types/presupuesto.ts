@@ -5,6 +5,8 @@ export interface Presupuesto {
   cliente_id: string
   descripcion: string
   monto: number
+  ancho_cm: number | null
+  largo_cm: number | null
   fecha: string
   estado: EstadoPresupuesto
   trabajo_id: string | null

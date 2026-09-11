@@ -100,6 +100,8 @@ export async function convertirEnTrabajo(presupuestoId: string, rubro: RubroTrab
       rubro,
       precio_final: presupuesto.monto,
       sena: 0,
+      ancho_cm: presupuesto.ancho_cm,
+      largo_cm: presupuesto.largo_cm,
       usuario_carga_id: user?.id,
     })
     .select()

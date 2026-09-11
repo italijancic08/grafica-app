@@ -53,6 +53,8 @@ export async function crearTrabajo(input: TrabajoInput) {
       rubro: parsed.data.rubro,
       precio_final: parsed.data.precio_final,
       sena: parsed.data.sena,
+      ancho_cm: parsed.data.ancho_cm ?? null,
+      largo_cm: parsed.data.largo_cm ?? null,
       fecha_maxima: parsed.data.fecha_maxima || null,
       usuario_carga_id: user?.id,
     })
