@@ -9,6 +9,8 @@ export default function FormularioClienteRapido() {
   const [abierto, setAbierto] = useState(false)
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [cuitCuil, setCuitCuil] = useState('')
+  const [localidad, setLocalidad] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -17,7 +19,12 @@ export default function FormularioClienteRapido() {
     setError(null)
     setCargando(true)
 
-    const resultado = await crearCliente({ nombre_razon_social: nombre, telefono })
+    const resultado = await crearCliente({
+      nombre_razon_social: nombre,
+      telefono,
+      cuit_cuil: cuitCuil,
+      localidad,
+    })
 
     setCargando(false)
 
@@ -28,6 +35,8 @@ export default function FormularioClienteRapido() {
 
     setNombre('')
     setTelefono('')
+    setCuitCuil('')
+    setLocalidad('')
     setAbierto(false)
     router.refresh()
   }
@@ -59,6 +68,23 @@ export default function FormularioClienteRapido() {
         <input
           value={telefono}
           onChange={(e) => setTelefono(e.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL</label>
+        <input
+          value={cuitCuil}
+          onChange={(e) => setCuitCuil(e.target.value)}
+          placeholder="20-12345678-9"
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-medium text-gray-700">Localidad</label>
+        <input
+          value={localidad}
+          onChange={(e) => setLocalidad(e.target.value)}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         />
       </div>

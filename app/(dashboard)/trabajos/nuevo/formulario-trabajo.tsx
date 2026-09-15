@@ -28,6 +28,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [mostrarClienteNuevo, setMostrarClienteNuevo] = useState(false)
   const [nombreClienteNuevo, setNombreClienteNuevo] = useState('')
   const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
+  const [cuitCuilClienteNuevo, setCuitCuilClienteNuevo] = useState('')
+  const [localidadClienteNuevo, setLocalidadClienteNuevo] = useState('')
   const [listaClientes, setListaClientes] = useState(clientes)
   const [creandoCliente, setCreandoCliente] = useState(false)
 
@@ -41,6 +43,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     const resultado = await crearCliente({
       nombre_razon_social: nombreClienteNuevo,
       telefono: telefonoClienteNuevo,
+      cuit_cuil: cuitCuilClienteNuevo,
+      localidad: localidadClienteNuevo,
     })
     setCreandoCliente(false)
 
@@ -54,6 +58,8 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     setMostrarClienteNuevo(false)
     setNombreClienteNuevo('')
     setTelefonoClienteNuevo('')
+    setCuitCuilClienteNuevo('')
+    setLocalidadClienteNuevo('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -140,6 +146,23 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
               <input
                 value={telefonoClienteNuevo}
                 onChange={(e) => setTelefonoClienteNuevo(e.target.value)}
+                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL</label>
+              <input
+                value={cuitCuilClienteNuevo}
+                onChange={(e) => setCuitCuilClienteNuevo(e.target.value)}
+                placeholder="20-12345678-9"
+                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Localidad</label>
+              <input
+                value={localidadClienteNuevo}
+                onChange={(e) => setLocalidadClienteNuevo(e.target.value)}
                 className="rounded-md border border-gray-300 px-2 py-1 text-sm"
               />
             </div>

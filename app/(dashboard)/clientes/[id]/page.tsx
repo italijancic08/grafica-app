@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { obtenerCliente, obtenerTrabajosDeCliente } from '@/lib/services/clientes'
+import FormularioEditarCliente from '../formulario-editar-cliente'
 
 function formatearMoneda(valor: number) {
   return valor.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
@@ -22,7 +23,10 @@ export default async function FichaClientePage({
 
   return (
     <div className="p-6">
-      <h1 className="mb-1 text-xl font-semibold text-gray-900">{cliente.nombre_razon_social}</h1>
+      <div className="mb-1 flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold text-gray-900">{cliente.nombre_razon_social}</h1>
+        <FormularioEditarCliente cliente={cliente} />
+      </div>
       <p className="mb-6 text-sm text-gray-500">
         {cliente.telefono ?? 'Sin teléfono'} {cliente.email ? `· ${cliente.email}` : ''}
       </p>
