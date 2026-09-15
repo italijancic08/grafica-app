@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/liquidar-semana",
+      "schedule": "0 23 * * 5"
+    }
+  ]
+}
