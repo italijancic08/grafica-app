@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { obtenerCliente, obtenerTrabajosDeCliente } from '@/lib/services/clientes'
 import FormularioEditarCliente from '../formulario-editar-cliente'
+import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 
 function formatearMoneda(valor: number) {
   return valor.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
@@ -18,8 +19,12 @@ export default async function FichaClientePage({
 
   const { data: trabajos } = await obtenerTrabajosDeCliente(id)
 
-  const totalComprado = trabajos?.reduce((acc, t) => acc + t.precio_final, 0) ?? 0
-  const deudaActual = trabajos?.reduce((acc, t) => acc + Math.max(t.saldo, 0), 0) ?? 0
+  // Los presupuestos (pendientes o rechazados) no cuentan como compra ni como deuda
+  const trabajosAceptados = trabajos?.filter(
+    (t) => t.estado_operativo !== 'PRESUPUESTO' && t.estado_operativo !== 'RECHAZADO'
+  ) ?? []
+  const totalComprado = trabajosAceptados.reduce((acc, t) => acc + t.precio_final, 0)
+  const deudaActual = trabajosAceptados.reduce((acc, t) => acc + Math.max(t.saldo, 0), 0)
 
   return (
     <div className="p-6">
@@ -41,7 +46,7 @@ export default async function FichaClientePage({
           <p className="text-lg font-semibold text-red-600">{formatearMoneda(deudaActual)}</p>
         </div>
         <div className="rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500">CUIT/CUIL</p>
+          <p className="text-xs text-gray-500">CUIT/CUIL/DNI</p>
           <p className="text-lg font-semibold">{cliente.cuit_cuil ?? '—'}</p>
         </div>
         <div className="rounded-lg border border-gray-200 p-4">
@@ -70,7 +75,7 @@ export default async function FichaClientePage({
               <tr key={t.id}>
                 <td className="px-4 py-2 font-medium">{t.numero}</td>
                 <td className="px-4 py-2">{t.descripcion}</td>
-                <td className="px-4 py-2">{t.estado_operativo.replace('_', ' ')}</td>
+                <td className="px-4 py-2">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</td>
                 <td className="px-4 py-2">{formatearMoneda(t.precio_final)}</td>
                 <td className={`px-4 py-2 ${t.saldo > 0 ? 'text-red-600' : ''}`}>
                   {formatearMoneda(t.saldo)}

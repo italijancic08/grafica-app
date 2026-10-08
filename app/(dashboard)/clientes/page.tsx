@@ -27,7 +27,7 @@ export default async function ClientesPage({
             <tr>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Nombre / Razón social</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Teléfono</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">CUIT/CUIL</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">CUIT/CUIL/DNI</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Localidad</th>
               <th className="px-4 py-2"></th>
             </tr>

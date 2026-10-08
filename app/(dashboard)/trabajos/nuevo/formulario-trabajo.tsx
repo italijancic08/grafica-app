@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearTrabajo } from '@/lib/services/trabajos'
-import { crearCliente } from '@/lib/services/clientes'
 import type { Cliente } from '@/lib/types/cliente'
-import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
+import SelectorCliente from '../../clientes/selector-cliente'
 
 export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] }) {
   const router = useRouter()
@@ -18,78 +17,34 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
   const [precioFinal, setPrecioFinal] = useState('')
   const [anchoCm, setAnchoCm] = useState('')
   const [largoCm, setLargoCm] = useState('')
-  const [sena, setSena] = useState('0')
-  const [medioPagoSena, setMedioPagoSena] = useState<MedioPago>('efectivo')
-  const [tipoTarjetaSena, setTipoTarjetaSena] = useState<TipoTarjeta>('debito')
-  const [otroDetalleSena, setOtroDetalleSena] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
-  const [mostrarClienteNuevo, setMostrarClienteNuevo] = useState(false)
-  const [nombreClienteNuevo, setNombreClienteNuevo] = useState('')
-  const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
-  const [cuitCuilClienteNuevo, setCuitCuilClienteNuevo] = useState('')
-  const [localidadClienteNuevo, setLocalidadClienteNuevo] = useState('')
-  const [listaClientes, setListaClientes] = useState(clientes)
-  const [creandoCliente, setCreandoCliente] = useState(false)
-
-  const haySena = Number(sena) > 0
   const m2 = Number(anchoCm) > 0 && Number(largoCm) > 0
     ? (Number(anchoCm) / 100) * (Number(largoCm) / 100)
     : null
-
-  async function handleCrearClienteRapido() {
-    setCreandoCliente(true)
-    const resultado = await crearCliente({
-      nombre_razon_social: nombreClienteNuevo,
-      telefono: telefonoClienteNuevo,
-      cuit_cuil: cuitCuilClienteNuevo,
-      localidad: localidadClienteNuevo,
-    })
-    setCreandoCliente(false)
-
-    if (resultado.error || !resultado.data) {
-      setError(resultado.error ?? 'No se pudo crear el cliente')
-      return
-    }
-
-    setListaClientes((prev) => [...prev, resultado.data])
-    setClienteId(resultado.data.id)
-    setMostrarClienteNuevo(false)
-    setNombreClienteNuevo('')
-    setTelefonoClienteNuevo('')
-    setCuitCuilClienteNuevo('')
-    setLocalidadClienteNuevo('')
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
-    if (!rubro) {
-      setError('Seleccioná un rubro')
+    if (!clienteId) {
+      setError('Seleccioná un cliente')
       return
     }
 
     setCargando(true)
 
-    const detalleMedioPagoSena =
-      medioPagoSena === 'tarjeta' ? tipoTarjetaSena :
-      medioPagoSena === 'otro' ? otroDetalleSena :
-      undefined
-
     try {
       const resultado = await crearTrabajo({
         cliente_id: clienteId,
         descripcion,
-        rubro,
+        rubro: rubro || undefined,
         fecha_maxima: fechaMaxima,
-        precio_final: Number(precioFinal),
+        // Si queda vacío, el presupuesto se guarda "sin definir" y se completa más adelante
+        precio_final: precioFinal.trim() === '' ? undefined : Number(precioFinal),
         ancho_cm: anchoCm ? Number(anchoCm) : undefined,
         largo_cm: largoCm ? Number(largoCm) : undefined,
-        sena: Number(sena),
-        medio_pago_sena: haySena ? medioPagoSena : undefined,
-        detalle_medio_pago_sena: haySena ? detalleMedioPagoSena : undefined,
       })
 
       if (resultado.error) {
@@ -110,83 +65,20 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     <form onSubmit={handleSubmit} className="max-w-xl space-y-4 rounded-lg border border-gray-200 p-6">
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Cliente</label>
-        <div className="flex gap-2">
-          <select
-            required
-            value={clienteId}
-            onChange={(e) => setClienteId(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Seleccionar cliente...</option>
-            {listaClientes.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre_razon_social}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setMostrarClienteNuevo((v) => !v)}
-            className="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm font-medium hover:bg-gray-50"
-          >
-            + Nuevo
-          </button>
-        </div>
-
-        {mostrarClienteNuevo && (
-          <div className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Nombre</label>
-              <input
-                value={nombreClienteNuevo}
-                onChange={(e) => setNombreClienteNuevo(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Teléfono</label>
-              <input
-                value={telefonoClienteNuevo}
-                onChange={(e) => setTelefonoClienteNuevo(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL</label>
-              <input
-                value={cuitCuilClienteNuevo}
-                onChange={(e) => setCuitCuilClienteNuevo(e.target.value)}
-                placeholder="20-12345678-9"
-                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Localidad</label>
-              <input
-                value={localidadClienteNuevo}
-                onChange={(e) => setLocalidadClienteNuevo(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleCrearClienteRapido}
-              disabled={creandoCliente || !nombreClienteNuevo}
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {creandoCliente ? 'Creando...' : 'Crear y usar'}
-            </button>
-          </div>
-        )}
+        <SelectorCliente clientes={clientes} clienteId={clienteId} onChange={setClienteId} />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Rubro</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Rubro
+          <span className="ml-1 font-normal text-gray-400">(se puede definir más adelante)</span>
+        </label>
         <select
-          required
           value={rubro}
           onChange={(e) => setRubro(e.target.value as RubroTrabajo)}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
         >
-          <option value="">Seleccionar rubro...</option>
+          <option value="">Sin definir</option>
           {Object.entries(ETIQUETAS_RUBRO_TRABAJO).map(([valor, etiqueta]) => (
             <option key={valor} value={valor}>{etiqueta}</option>
           ))}
@@ -204,9 +96,9 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha máxima</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Plazo de entrega</label>
           <input
             type="date"
             value={fechaMaxima}
@@ -215,25 +107,16 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Precio final</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Precio
+            <span className="ml-1 font-normal text-gray-400">(opcional)</span>
+          </label>
           <input
             type="number"
             step="0.01"
             min="0"
-            required
             value={precioFinal}
             onChange={(e) => setPrecioFinal(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Seña</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={sena}
-            onChange={(e) => setSena(e.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           />
         </div>
@@ -270,51 +153,6 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
         </div>
       </div>
 
-      {haySena && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-          <p className="mb-2 text-sm font-medium text-gray-700">Medio de pago de la seña</p>
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <select
-                value={medioPagoSena}
-                onChange={(e) => setMedioPagoSena(e.target.value as MedioPago)}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-              >
-                {Object.entries(ETIQUETAS_MEDIO_PAGO).map(([valor, etiqueta]) => (
-                  <option key={valor} value={valor}>{etiqueta}</option>
-                ))}
-              </select>
-            </div>
-
-            {medioPagoSena === 'tarjeta' && (
-              <div>
-                <select
-                  value={tipoTarjetaSena}
-                  onChange={(e) => setTipoTarjetaSena(e.target.value as TipoTarjeta)}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                >
-                  {Object.entries(ETIQUETAS_TIPO_TARJETA).map(([valor, etiqueta]) => (
-                    <option key={valor} value={valor}>{etiqueta}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {medioPagoSena === 'otro' && (
-              <div>
-                <input
-                  required
-                  value={otroDetalleSena}
-                  onChange={(e) => setOtroDetalleSena(e.target.value)}
-                  placeholder="Ej: cheque, criptomoneda..."
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
@@ -322,7 +160,7 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
         disabled={cargando}
         className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
       >
-        {cargando ? 'Guardando...' : 'Crear trabajo'}
+        {cargando ? 'Guardando...' : 'Guardar presupuesto'}
       </button>
     </form>
   )

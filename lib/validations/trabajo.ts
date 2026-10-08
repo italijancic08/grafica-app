@@ -8,41 +8,30 @@ export const RUBROS_TRABAJO = [
   'termotransferible_corte', 'venta_lamina', 'venta_materiales', 'vinilo_aerosol',
 ] as const
 
+// Alta: todo trabajo nace como PRESUPUESTO. El rubro y el precio son
+// opcionales en esta fase; se exigen recién al aceptarlo.
 export const trabajoSchema = z.object({
   cliente_id: z.uuid('Seleccioná un cliente'),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
-  rubro: z.enum(RUBROS_TRABAJO, { error: 'Seleccioná un rubro' }),
+  rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),
-  precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
-  sena: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'La seña no puede ser negativa'),
+  precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo').optional(),
   ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
   largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
-  medio_pago_sena: z.enum(['efectivo', 'transferencia', 'tarjeta', 'mixto', 'otro']).optional(),
-  detalle_medio_pago_sena: z.string().optional(),
-}).refine(
-  (data) => {
-    if (data.sena <= 0) return true
-    if (!data.medio_pago_sena) return false
-    if (data.medio_pago_sena === 'tarjeta') return !!data.detalle_medio_pago_sena
-    if (data.medio_pago_sena === 'otro') return !!data.detalle_medio_pago_sena?.trim()
-    return true
-  },
-  {
-    message: 'Especificá el medio de pago de la seña',
-    path: ['medio_pago_sena'],
-  }
-)
+})
 
 export type TrabajoInput = z.infer<typeof trabajoSchema>
 
-// Campos editables desde la ficha del trabajo. No incluye cliente_id ni seña:
-// el cliente no se reasigna acá, y la seña ya se registró como un pago real
-// (se edita, si hace falta, desde la sección de Pagos).
+// Campos editables desde la ficha. El cliente solo se puede cambiar
+// mientras el trabajo siga en fase de presupuesto (lo valida el servicio).
 export const trabajoEditSchema = z.object({
+  cliente_id: z.uuid('Seleccioná un cliente').optional(),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
-  rubro: z.enum(RUBROS_TRABAJO, { error: 'Seleccioná un rubro' }),
+  rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),
   precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
+  ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
+  largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
 })
 
 export type TrabajoEditInput = z.infer<typeof trabajoEditSchema>

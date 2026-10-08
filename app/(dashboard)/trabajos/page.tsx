@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { listarTrabajos } from '@/lib/services/trabajos'
+import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 
@@ -13,7 +14,8 @@ function badgeFinanciero(estado: string) {
 }
 
 export default async function TrabajosPage() {
-  const { data: trabajos, error } = await listarTrabajos()
+  // Los presupuestos y rechazados se ven en /presupuestos
+  const { data: trabajos, error } = await listarTrabajos(ESTADOS_DE_TRABAJO)
 
   return (
     <div className="p-6">
@@ -23,7 +25,7 @@ export default async function TrabajosPage() {
           href="/trabajos/nuevo"
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
-          + Nuevo trabajo
+          + Nuevo presupuesto
         </Link>
       </div>
 
@@ -38,7 +40,7 @@ export default async function TrabajosPage() {
               <th className="px-4 py-2 text-left font-medium text-gray-500">Pago</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Precio</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Saldo</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">F. máxima</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Plazo de entrega</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">

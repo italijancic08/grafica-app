@@ -1,4 +1,6 @@
 export type EstadoOperativo =
+  | 'PRESUPUESTO'
+  | 'RECHAZADO'
   | 'INGRESADO'
   | 'EN_PRODUCCION'
   | 'TERCERIZADO'
@@ -21,7 +23,7 @@ export interface Trabajo {
   numero: string
   cliente_id: string
   descripcion: string
-  rubro: RubroTrabajo
+  rubro: RubroTrabajo | null
   fecha_entrada: string
   fecha_maxima: string | null
   fecha_finalizacion: string | null
@@ -45,6 +47,8 @@ export interface TrabajoConSaldo extends Trabajo {
 }
 
 export const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {
+  PRESUPUESTO: 'Presupuesto',
+  RECHAZADO: 'Rechazado',
   INGRESADO: 'Ingresado',
   EN_PRODUCCION: 'En producción',
   TERCERIZADO: 'Tercerizado',

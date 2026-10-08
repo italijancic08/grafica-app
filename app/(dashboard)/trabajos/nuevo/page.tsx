@@ -6,7 +6,7 @@ export default async function NuevoTrabajoPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">Nuevo trabajo</h1>
+      <h1 className="mb-6 text-xl font-semibold text-gray-900">Nuevo presupuesto</h1>
       <FormularioTrabajo clientes={clientes ?? []} />
     </div>
   )

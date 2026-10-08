@@ -22,7 +22,7 @@ export default function BuscadorClientes() {
   return (
     <input
       type="text"
-      placeholder="Buscar por nombre, teléfono o CUIT..."
+      placeholder="Buscar por nombre, teléfono o CUIT/CUIL/DNI..."
       value={valor}
       onChange={(e) => handleChange(e.target.value)}
       className="w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"

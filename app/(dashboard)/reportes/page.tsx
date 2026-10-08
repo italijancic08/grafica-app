@@ -124,7 +124,7 @@ export default async function ReportesPage({
             <div>
               <h2 className="mb-3 text-sm font-semibold text-gray-900">Productividad</h2>
               {productividad && productividad.total === 0 && (
-                <p className="text-sm text-gray-500">Sin trabajos retirados con fecha máxima en este período.</p>
+                <p className="text-sm text-gray-500">Sin trabajos retirados con plazo de entrega en este período.</p>
               )}
               {productividad && productividad.total > 0 && (
                 <div className="rounded-lg border border-gray-200 p-4">

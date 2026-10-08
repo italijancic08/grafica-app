@@ -30,9 +30,13 @@ export async function registrarPago(input: PagoInput) {
   // Verificar que el pago no exceda el saldo pendiente (evita pagos de más por error)
   const { data: trabajo } = await supabase
     .from('trabajos_con_saldo')
-    .select('saldo, numero')
+    .select('saldo, numero, estado_operativo')
     .eq('id', parsed.data.trabajo_id)
     .single()
+
+  if (trabajo && (trabajo.estado_operativo === 'PRESUPUESTO' || trabajo.estado_operativo === 'RECHAZADO')) {
+    return { error: 'No se pueden registrar pagos hasta que el presupuesto sea aceptado.' }
+  }
 
   if (trabajo && parsed.data.importe > trabajo.saldo) {
     return {

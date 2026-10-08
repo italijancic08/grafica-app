@@ -19,6 +19,8 @@ export const ETIQUETAS_ACCION: Record<string, string> = {
   editar_movimiento_caja: 'Movimiento de caja editado',
   cerrar_caja_mensual: 'Cierre de caja mensual',
   convertir_presupuesto: 'Presupuesto convertido',
+  aceptar_presupuesto: 'Presupuesto aceptado',
+  rechazar_presupuesto: 'Presupuesto rechazado',
   marcar_vuelta: 'Tercerización vuelta',
 }
 

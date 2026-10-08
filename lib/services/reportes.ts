@@ -20,7 +20,7 @@ export async function obtenerResumenPeriodo({ desde, hasta }: FiltrosReporte) {
       .select('precio_final')
       .gte('fecha_entrada', desde)
       .lte('fecha_entrada', hasta)
-      .neq('estado_operativo', 'CANCELADO'),
+      .not('estado_operativo', 'in', '(CANCELADO,PRESUPUESTO,RECHAZADO)'),
     supabase.from('pagos').select('importe').gte('fecha', desde).lte('fecha', hasta),
   ])
 
@@ -43,7 +43,7 @@ export async function obtenerVentasPorRubro({ desde, hasta }: FiltrosReporte) {
     .select('rubro, precio_final')
     .gte('fecha_entrada', desde)
     .lte('fecha_entrada', hasta)
-    .neq('estado_operativo', 'CANCELADO')
+    .not('estado_operativo', 'in', '(CANCELADO,PRESUPUESTO,RECHAZADO)')
 
   if (error) return { error: error.message }
 
@@ -69,7 +69,7 @@ export async function obtenerRankingClientes({ desde, hasta }: FiltrosReporte, l
     .select('cliente_id, precio_final, clientes(nombre_razon_social)')
     .gte('fecha_entrada', desde)
     .lte('fecha_entrada', hasta)
-    .neq('estado_operativo', 'CANCELADO')
+    .not('estado_operativo', 'in', '(CANCELADO,PRESUPUESTO,RECHAZADO)')
 
   if (error) return { error: error.message }
 

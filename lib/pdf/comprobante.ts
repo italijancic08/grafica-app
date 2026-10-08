@@ -88,7 +88,7 @@ export async function generarPdfComprobante(datos: {
   texto('Cliente', { tamano: 9, negrita: true, color: gris })
   y -= 15
   texto(datos.cliente.nombre_razon_social, { tamano: 11 })
-  if (datos.cliente.cuit_cuil) { y -= 14; texto(`CUIT/CUIL: ${datos.cliente.cuit_cuil}`, { tamano: 9, color: gris }) }
+  if (datos.cliente.cuit_cuil) { y -= 14; texto(`CUIT/CUIL/DNI: ${datos.cliente.cuit_cuil}`, { tamano: 9, color: gris }) }
   if (datos.cliente.domicilio) { y -= 14; texto(datos.cliente.domicilio, { tamano: 9, color: gris }) }
 
   // --- Datos del trabajo ---
