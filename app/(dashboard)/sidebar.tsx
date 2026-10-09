@@ -16,6 +16,7 @@ import {
   Tags,
   Clock3,
   WalletCards,
+  CalendarDays,
 } from 'lucide-react'
 
 const NAV_PRINCIPAL = [
@@ -41,6 +42,12 @@ const NAV_PRINCIPAL = [
     nombre: 'Paga',
     href: '/paga',
     icono: WalletCards,
+  },
+
+  {
+    nombre: 'Turnos',
+    href: '/turnos',
+    icono: CalendarDays,
   },
 
   {

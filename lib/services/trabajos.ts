@@ -56,6 +56,7 @@ export async function crearTrabajo(input: TrabajoInput) {
       ancho_cm: parsed.data.ancho_cm ?? null,
       largo_cm: parsed.data.largo_cm ?? null,
       fecha_maxima: parsed.data.fecha_maxima || null,
+      requiere_turno: parsed.data.requiere_turno ?? false,
       estado_operativo: 'PRESUPUESTO',
       usuario_carga_id: user?.id,
     })
@@ -63,6 +64,19 @@ export async function crearTrabajo(input: TrabajoInput) {
     .single()
 
   if (error) return { error: error.message }
+
+  if (parsed.data.requiere_turno) {
+    const { error: errorTurno } = await supabase.from('turnos').insert({
+      trabajo_id: data.id,
+      fecha: parsed.data.turno_fecha || null,
+      hora: parsed.data.turno_hora || null,
+      instalador_id: parsed.data.instalador_id || null,
+    })
+    if (errorTurno) {
+      await supabase.from('trabajos').delete().eq('id', data.id)
+      return { error: `No se pudo crear el turno: ${errorTurno.message}` }
+    }
+  }
 
   await supabase.from('auditoria').insert({
     usuario_id: user?.id,
@@ -74,6 +88,7 @@ export async function crearTrabajo(input: TrabajoInput) {
 
   revalidatePath('/presupuestos')
   revalidatePath('/trabajos')
+  revalidatePath('/turnos')
   return { data }
 }
 
@@ -260,7 +275,7 @@ export async function aceptarPresupuesto(trabajoId: string) {
 
   const { data: actual, error: errorActual } = await supabase
     .from('trabajos')
-    .select('estado_operativo, precio_final, rubro, numero')
+    .select('estado_operativo, precio_final, rubro, numero, requiere_turno')
     .eq('id', trabajoId)
     .single()
 
@@ -291,6 +306,11 @@ export async function aceptarPresupuesto(trabajoId: string) {
 
   if (error || !data) return { error: error?.message ?? 'No se pudo aceptar el presupuesto.' }
 
+  if (actual.requiere_turno) {
+    const { error: errorTurno } = await supabase.from('turnos').upsert({ trabajo_id: trabajoId }, { onConflict: 'trabajo_id', ignoreDuplicates: true })
+    if (errorTurno) return { error: `El presupuesto se aceptó, pero no se pudo registrar el turno: ${errorTurno.message}` }
+  }
+
   await supabase.from('auditoria').insert({
     usuario_id: user?.id,
     accion: 'aceptar_presupuesto',
@@ -301,6 +321,7 @@ export async function aceptarPresupuesto(trabajoId: string) {
 
   revalidatePath('/presupuestos')
   revalidatePath('/trabajos')
+  revalidatePath('/turnos')
   revalidatePath(`/trabajos/${trabajoId}`)
   return { data }
 }
@@ -334,5 +355,115 @@ export async function rechazarPresupuesto(trabajoId: string) {
 
   revalidatePath('/presupuestos')
   revalidatePath(`/trabajos/${trabajoId}`)
+  return { success: true }
+}
+
+export async function listarInstaladoresActivos() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('instaladores')
+    .select('id, nombre')
+    .eq('activo', true)
+    .order('nombre')
+  if (error) return { error: error.message }
+  return { data: data ?? [] }
+}
+
+export async function crearInstalador(nombre: string) {
+  const nombreLimpio = nombre.trim()
+  if (!nombreLimpio) return { error: 'Ingresá el nombre del instalador.' }
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('instaladores').insert({ nombre: nombreLimpio }).select('id, nombre').single()
+  if (error) return { error: error.message }
+  revalidatePath('/turnos')
+  revalidatePath('/trabajos/nuevo')
+  return { data }
+}
+
+export async function listarTurnos() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('turnos')
+    .select('id, trabajo_id, fecha, hora, estado, notas, instalador_id, instaladores(id, nombre), trabajos!inner(id, numero, descripcion, precio_final, estado_operativo, requiere_turno, clientes(nombre_razon_social, telefono))')
+    .eq('trabajos.requiere_turno', true)
+    .not('trabajos.estado_operativo', 'in', '(PRESUPUESTO,RECHAZADO)')
+    .order('fecha', { ascending: true, nullsFirst: true })
+    .order('hora', { ascending: true, nullsFirst: true })
+  if (error) return { error: error.message }
+  return { data: data ?? [] }
+}
+
+
+export async function actualizarTurno(input: {
+  id: string
+  trabajo_id: string
+  fecha: string
+  hora: string
+  instalador_id: string
+  estado: string
+}) {
+  const estadosPermitidos: EstadoOperativo[] = [
+    'INGRESADO',
+    'EN_PRODUCCION',
+    'TERCERIZADO',
+    'TERMINADO',
+    'PARA_RETIRAR',
+    'RETIRADO',
+    'CANCELADO',
+  ]
+
+  if (!estadosPermitidos.includes(input.estado as EstadoOperativo)) {
+    return { error: 'Estado de trabajo inválido.' }
+  }
+
+  if (
+    (input.fecha && !input.hora) ||
+    (!input.fecha && input.hora)
+  ) {
+    return {
+      error:
+        'Para asignar una fecha también tenés que indicar la hora, y viceversa.',
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Guardar los datos propios del turno.
+  const { error: errorTurno } = await supabase
+    .from('turnos')
+    .update({
+      fecha: input.fecha || null,
+      hora: input.hora || null,
+      instalador_id: input.instalador_id || null,
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', input.id)
+
+  if (errorTurno) {
+    return { error: errorTurno.message }
+  }
+
+  // El estado se modifica en el trabajo asociado.
+  // Turnos mostrará ese mismo estado.
+  const resultadoEstado = await cambiarEstadoTrabajo(
+    input.trabajo_id,
+    input.estado as EstadoOperativo
+  )
+
+  if (resultadoEstado.error) {
+    return { error: resultadoEstado.error }
+  }
+
+  if (resultadoEstado.requiereConfirmacion) {
+    return {
+      error:
+        'El trabajo tiene saldo pendiente. Gestioná el retiro desde la ficha del trabajo para confirmar si corresponde.',
+    }
+  }
+
+  revalidatePath('/turnos')
+  revalidatePath('/trabajos')
+  revalidatePath(`/trabajos/${input.trabajo_id}`)
+
   return { success: true }
 }

@@ -18,6 +18,10 @@ export const trabajoSchema = z.object({
   precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo').optional(),
   ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
   largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
+  requiere_turno: z.boolean().optional().default(false),
+  turno_fecha: z.string().optional(),
+  turno_hora: z.string().optional(),
+  instalador_id: z.uuid().optional().or(z.literal('')),
 })
 
 export type TrabajoInput = z.infer<typeof trabajoSchema>
