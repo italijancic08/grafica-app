@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+/* Barra de desplazamiento de la navegación lateral */
+.sidebar-scrollbar-left {
+  direction: rtl;
+  scrollbar-width: thin;
+  scrollbar-color: #52525b transparent;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-scrollbar-content {
+  direction: ltr;
+}
+
+/* Chrome, Edge y Safari */
+.sidebar-scrollbar-left::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sidebar-scrollbar-left::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 5px;
+}
+
+.sidebar-scrollbar-left::-webkit-scrollbar-thumb {
+  background-color: #52525b;
+  border-radius: 999px;
+  border: 2px solid #18181b;
+}
+
+.sidebar-scrollbar-left::-webkit-scrollbar-thumb:hover {
+  background-color: #71717a;
+}
