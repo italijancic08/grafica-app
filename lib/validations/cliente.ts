@@ -10,6 +10,7 @@ export const clienteSchema = z.object({
   localidad: z.string().optional(),
   provincia: z.string().optional(),
   notas: z.string().optional(),
+  empresa_cliente_id: z.uuid('Empresa inválida').optional().or(z.literal('')),
 })
 
 export type ClienteInput = z.infer<typeof clienteSchema>

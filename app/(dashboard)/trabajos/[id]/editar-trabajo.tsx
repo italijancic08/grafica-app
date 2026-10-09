@@ -7,12 +7,16 @@ import type { Cliente } from '@/lib/types/cliente'
 import { ETIQUETAS_RUBRO_TRABAJO, type EstadoOperativo, type RubroTrabajo } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
 import SelectorCliente from '../../clientes/selector-cliente'
+import SelectorEmpresa from '../../clientes/selector-empresa'
+import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
 
 export default function EditarTrabajo({
   trabajoId,
   estado,
   clienteId,
   clientes,
+  empresaClienteId,
+  empresas,
   descripcion,
   rubro,
   fechaMaxima,
@@ -24,6 +28,8 @@ export default function EditarTrabajo({
   estado: EstadoOperativo
   clienteId: string
   clientes: Cliente[]
+  empresaClienteId: string | null
+  empresas: EmpresaCliente[]
   descripcion: string
   rubro: RubroTrabajo | null
   fechaMaxima: string | null
@@ -38,6 +44,7 @@ export default function EditarTrabajo({
   const [editando, setEditando] = useState(false)
 
   const [clienteForm, setClienteForm] = useState(clienteId)
+  const [empresaForm, setEmpresaForm] = useState(empresaClienteId ?? '')
   const [descripcionForm, setDescripcionForm] = useState(descripcion)
   const [rubroForm, setRubroForm] = useState<RubroTrabajo | ''>(rubro ?? '')
   const [fechaMaximaForm, setFechaMaximaForm] = useState(fechaMaxima ?? '')
@@ -53,6 +60,7 @@ export default function EditarTrabajo({
 
   function handleCancelar() {
     setClienteForm(clienteId)
+    setEmpresaForm(empresaClienteId ?? '')
     setDescripcionForm(descripcion)
     setRubroForm(rubro ?? '')
     setFechaMaximaForm(fechaMaxima ?? '')
@@ -77,6 +85,7 @@ export default function EditarTrabajo({
     try {
       const resultado = await actualizarTrabajo(trabajoId, {
         cliente_id: esPresupuesto ? clienteForm : undefined,
+        empresa_cliente_id: empresaForm,
         descripcion: descripcionForm,
         rubro: rubroForm || undefined,
         fecha_maxima: fechaMaximaForm,
@@ -113,6 +122,18 @@ export default function EditarTrabajo({
               <SelectorCliente clientes={clientes} clienteId={clienteForm} onChange={setClienteForm} />
             </div>
           )}
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Ingresa por parte de</label>
+            <SelectorEmpresa
+              empresas={empresas}
+              valor={empresaForm}
+              onChange={setEmpresaForm}
+              etiquetaVacia="El cliente (a su nombre)"
+              destacadaId={clientes.find((c) => c.id === clienteForm)?.empresa_cliente_id ?? undefined}
+              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm sm:w-80"
+            />
+          </div>
 
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">Rubro</label>
@@ -236,6 +257,9 @@ export default function EditarTrabajo({
         {esPresupuesto ? 'Precio' : 'Precio final'}:{' '}
         {precioFinal > 0 ? formatearMoneda(precioFinal) : 'Sin definir'}
         {anchoCm && largoCm ? ` · Medidas: ${anchoCm} × ${largoCm} cm` : ''}
+        {empresaClienteId
+          ? ` · Por parte de: ${empresas.find((e) => e.id === empresaClienteId)?.nombre ?? ''}`
+          : ''}
       </p>
     </div>
   )

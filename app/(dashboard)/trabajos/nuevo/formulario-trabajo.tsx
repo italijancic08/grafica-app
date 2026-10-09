@@ -6,12 +6,21 @@ import { crearTrabajo, listarInstaladoresActivos } from '@/lib/services/trabajos
 import type { Cliente } from '@/lib/types/cliente'
 import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
 import SelectorCliente from '../../clientes/selector-cliente'
+import SelectorEmpresa from '../../clientes/selector-empresa'
+import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
 
 type Instalador = { id: string; nombre: string }
 
-export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] }) {
+export default function FormularioTrabajo({
+  clientes,
+  empresas,
+}: {
+  clientes: Cliente[]
+  empresas: EmpresaCliente[]
+}) {
   const router = useRouter()
   const [clienteId, setClienteId] = useState('')
+  const [empresaId, setEmpresaId] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [rubro, setRubro] = useState<RubroTrabajo | ''>('')
   const [fechaMaxima, setFechaMaxima] = useState('')
@@ -32,6 +41,9 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     })
   }, [])
 
+  // Si el cliente pertenece a una empresa, esa empresa aparece primera en la lista
+  const empresaDelCliente = clientes.find((c) => c.id === clienteId)?.empresa_cliente_id ?? undefined
+
   const m2 = Number(anchoCm) > 0 && Number(largoCm) > 0
     ? (Number(anchoCm) / 100) * (Number(largoCm) / 100)
     : null
@@ -51,6 +63,7 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
     try {
       const resultado = await crearTrabajo({
         cliente_id: clienteId,
+        empresa_cliente_id: empresaId,
         descripcion,
         rubro: rubro || undefined,
         fecha_maxima: fechaMaxima,
@@ -76,6 +89,21 @@ export default function FormularioTrabajo({ clientes }: { clientes: Cliente[] })
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Cliente</label>
         <SelectorCliente clientes={clientes} clienteId={clienteId} onChange={setClienteId} />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Ingresa por parte de
+          <span className="ml-1 font-normal text-gray-400">(opcional)</span>
+        </label>
+        <SelectorEmpresa
+          empresas={empresas}
+          valor={empresaId}
+          onChange={setEmpresaId}
+          etiquetaVacia="El cliente (a su nombre)"
+          destacadaId={empresaDelCliente}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+        />
       </div>
 
       <div>

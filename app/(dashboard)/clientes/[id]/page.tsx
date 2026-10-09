@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { obtenerCliente, obtenerTrabajosDeCliente } from '@/lib/services/clientes'
+import { listarEmpresasClientes } from '@/lib/services/empresas-clientes'
 import FormularioEditarCliente from '../formulario-editar-cliente'
 import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 
@@ -18,6 +20,7 @@ export default async function FichaClientePage({
   if (error || !cliente) notFound()
 
   const { data: trabajos } = await obtenerTrabajosDeCliente(id)
+  const { data: empresas } = await listarEmpresasClientes()
 
   // Los presupuestos (pendientes o rechazados) no cuentan como compra ni como deuda
   const trabajosAceptados = trabajos?.filter(
@@ -30,10 +33,18 @@ export default async function FichaClientePage({
     <div className="p-6">
       <div className="mb-1 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold text-gray-900">{cliente.nombre_razon_social}</h1>
-        <FormularioEditarCliente cliente={cliente} />
+        <FormularioEditarCliente cliente={cliente} empresas={empresas ?? []} />
       </div>
       <p className="mb-6 text-sm text-gray-500">
         {cliente.telefono ?? 'Sin teléfono'} {cliente.email ? `· ${cliente.email}` : ''}
+        {cliente.empresa_cliente_id && cliente.empresas_clientes && (
+          <>
+            {' · Empresa: '}
+            <Link href={`/clientes/empresas/${cliente.empresa_cliente_id}`} className="font-medium text-gray-700 hover:underline">
+              {cliente.empresas_clientes.nombre}
+            </Link>
+          </>
+        )}
       </p>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -62,6 +73,7 @@ export default async function FichaClientePage({
             <tr>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Número</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Descripción</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Ingresó por</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Precio</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Saldo</th>
@@ -69,12 +81,13 @@ export default async function FichaClientePage({
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {trabajos?.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-3 text-gray-500">Sin trabajos todavía.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-3 text-gray-500">Sin trabajos todavía.</td></tr>
             )}
             {trabajos?.map((t) => (
               <tr key={t.id}>
                 <td className="px-4 py-2 font-medium">{t.numero}</td>
                 <td className="px-4 py-2">{t.descripcion}</td>
+                <td className="px-4 py-2">{t.empresas_clientes?.nombre ?? 'Cliente'}</td>
                 <td className="px-4 py-2">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</td>
                 <td className="px-4 py-2">{formatearMoneda(t.precio_final)}</td>
                 <td className={`px-4 py-2 ${t.saldo > 0 ? 'text-red-600' : ''}`}>

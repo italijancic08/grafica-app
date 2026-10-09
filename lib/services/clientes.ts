@@ -10,12 +10,23 @@ export async function listarClientes(busqueda?: string) {
 
   let query = supabase
     .from('clientes')
-    .select('*')
+    .select('*, empresas_clientes(nombre)')
     .order('nombre_razon_social', { ascending: true })
 
   if (busqueda) {
+    // También busca por el nombre de la empresa a la que pertenece el cliente
+    const { data: empresasCoincidentes } = await supabase
+      .from('empresas_clientes')
+      .select('id')
+      .ilike('nombre', `%${busqueda}%`)
+
+    const idsEmpresas = empresasCoincidentes?.map((e) => e.id) ?? []
+    const filtroEmpresa = idsEmpresas.length > 0
+      ? `,empresa_cliente_id.in.(${idsEmpresas.join(',')})`
+      : ''
+
     query = query.or(
-      `nombre_razon_social.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%,cuit_cuil.ilike.%${busqueda}%`
+      `nombre_razon_social.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%,cuit_cuil.ilike.%${busqueda}%${filtroEmpresa}`
     )
   }
 
@@ -28,7 +39,7 @@ export async function obtenerCliente(id: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('clientes')
-    .select('*')
+    .select('*, empresas_clientes(nombre)')
     .eq('id', id)
     .single()
 
@@ -47,7 +58,7 @@ export async function crearCliente(input: ClienteInput) {
 
   const { data, error } = await supabase
     .from('clientes')
-    .insert(parsed.data)
+    .insert({ ...parsed.data, empresa_cliente_id: parsed.data.empresa_cliente_id || null })
     .select()
     .single()
 
@@ -76,13 +87,17 @@ export async function actualizarCliente(id: string, input: ClienteInput) {
 
   const { data: clienteAnterior } = await supabase
     .from('clientes')
-    .select('nombre_razon_social, telefono, cuit_cuil')
+    .select('nombre_razon_social, telefono, cuit_cuil, empresa_cliente_id')
     .eq('id', id)
     .single()
 
   const { error } = await supabase
     .from('clientes')
-    .update({ ...parsed.data, modificado_en: new Date().toISOString() })
+    .update({
+      ...parsed.data,
+      empresa_cliente_id: parsed.data.empresa_cliente_id || null,
+      modificado_en: new Date().toISOString(),
+    })
     .eq('id', id)
 
   if (error) return { error: error.message }
@@ -105,7 +120,7 @@ export async function obtenerTrabajosDeCliente(clienteId: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos_con_saldo')
-    .select('*')
+    .select('*, empresas_clientes(nombre)')
     .eq('cliente_id', clienteId)
     .order('creado_en', { ascending: false })
 

@@ -12,6 +12,7 @@ export const RUBROS_TRABAJO = [
 // opcionales en esta fase; se exigen recién al aceptarlo.
 export const trabajoSchema = z.object({
   cliente_id: z.uuid('Seleccioná un cliente'),
+  empresa_cliente_id: z.uuid('Empresa inválida').optional().or(z.literal('')),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),
@@ -30,6 +31,7 @@ export type TrabajoInput = z.infer<typeof trabajoSchema>
 // mientras el trabajo siga en fase de presupuesto (lo valida el servicio).
 export const trabajoEditSchema = z.object({
   cliente_id: z.uuid('Seleccioná un cliente').optional(),
+  empresa_cliente_id: z.uuid('Empresa inválida').optional().or(z.literal('')),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),

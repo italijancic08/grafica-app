@@ -3,14 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearCliente } from '@/lib/services/clientes'
+import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
+import SelectorEmpresa from './selector-empresa'
 
-export default function FormularioClienteRapido() {
+export default function FormularioClienteRapido({ empresas }: { empresas: EmpresaCliente[] }) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [cuitCuil, setCuitCuil] = useState('')
   const [localidad, setLocalidad] = useState('')
+  const [empresaId, setEmpresaId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -24,6 +27,7 @@ export default function FormularioClienteRapido() {
       telefono,
       cuit_cuil: cuitCuil,
       localidad,
+      empresa_cliente_id: empresaId,
     })
 
     setCargando(false)
@@ -37,6 +41,7 @@ export default function FormularioClienteRapido() {
     setTelefono('')
     setCuitCuil('')
     setLocalidad('')
+    setEmpresaId('')
     setAbierto(false)
     router.refresh()
   }
@@ -85,6 +90,15 @@ export default function FormularioClienteRapido() {
         <input
           value={localidad}
           onChange={(e) => setLocalidad(e.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-medium text-gray-700">Empresa (opcional)</label>
+        <SelectorEmpresa
+          empresas={empresas}
+          valor={empresaId}
+          onChange={setEmpresaId}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         />
       </div>

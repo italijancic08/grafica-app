@@ -67,7 +67,12 @@ export default async function PresupuestosPage({
                   <Link href={`/trabajos/${p.id}`} className="hover:underline">{p.numero}</Link>
                 </td>
                 <td className="px-4 py-2">{formatearFecha(p.fecha_entrada)}</td>
-                <td className="px-4 py-2">{p.clientes?.nombre_razon_social}</td>
+                <td className="px-4 py-2">
+                  {p.clientes?.nombre_razon_social}
+                  {p.empresas_clientes && (
+                    <span className="block text-xs text-gray-400">por parte de {p.empresas_clientes.nombre}</span>
+                  )}
+                </td>
                 <td className="max-w-xs truncate px-4 py-2">{p.descripcion}</td>
                 <td className="px-4 py-2">
                   {p.rubro ? ETIQUETAS_RUBRO_TRABAJO[p.rubro as RubroTrabajo] : '—'}

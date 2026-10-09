@@ -22,6 +22,7 @@ export interface Trabajo {
   id: string
   numero: string
   cliente_id: string
+  empresa_cliente_id: string | null
   descripcion: string
   rubro: RubroTrabajo | null
   fecha_entrada: string
@@ -45,6 +46,7 @@ export interface TrabajoConSaldo extends Trabajo {
   saldo: number
   estado_financiero: EstadoFinanciero
   clientes?: { nombre_razon_social: string; telefono: string | null }
+  empresas_clientes?: { nombre: string } | null
 }
 
 export const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {

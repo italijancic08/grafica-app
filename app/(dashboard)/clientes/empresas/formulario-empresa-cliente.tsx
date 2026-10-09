@@ -2,47 +2,45 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { actualizarCliente } from '@/lib/services/clientes'
-import type { Cliente } from '@/lib/types/cliente'
+import {
+  crearEmpresaCliente,
+  actualizarEmpresaCliente,
+} from '@/lib/services/empresas-clientes'
 import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
-import SelectorEmpresa from './selector-empresa'
 
-export default function FormularioEditarCliente({
-  cliente,
-  empresas,
-}: {
-  cliente: Cliente
-  empresas: EmpresaCliente[]
-}) {
+// Sin la prop "empresa" funciona como alta; con "empresa" funciona como edición.
+export default function FormularioEmpresaCliente({ empresa }: { empresa?: EmpresaCliente }) {
   const router = useRouter()
-  const [editando, setEditando] = useState(false)
+  const esEdicion = !!empresa
+
+  const [abierto, setAbierto] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [nombre, setNombre] = useState(cliente.nombre_razon_social)
-  const [telefono, setTelefono] = useState(cliente.telefono ?? '')
-  const [whatsapp, setWhatsapp] = useState(cliente.whatsapp ?? '')
-  const [email, setEmail] = useState(cliente.email ?? '')
-  const [cuitCuil, setCuitCuil] = useState(cliente.cuit_cuil ?? '')
-  const [domicilio, setDomicilio] = useState(cliente.domicilio ?? '')
-  const [localidad, setLocalidad] = useState(cliente.localidad ?? '')
-  const [provincia, setProvincia] = useState(cliente.provincia ?? '')
-  const [notas, setNotas] = useState(cliente.notas ?? '')
-  const [empresaId, setEmpresaId] = useState(cliente.empresa_cliente_id ?? '')
+  const [nombre, setNombre] = useState(empresa?.nombre ?? '')
+  const [telefono, setTelefono] = useState(empresa?.telefono ?? '')
+  const [email, setEmail] = useState(empresa?.email ?? '')
+  const [cuit, setCuit] = useState(empresa?.cuit ?? '')
+  const [domicilio, setDomicilio] = useState(empresa?.domicilio ?? '')
+  const [localidad, setLocalidad] = useState(empresa?.localidad ?? '')
+  const [provincia, setProvincia] = useState(empresa?.provincia ?? '')
+  const [notas, setNotas] = useState(empresa?.notas ?? '')
+
+  function restablecer() {
+    setNombre(empresa?.nombre ?? '')
+    setTelefono(empresa?.telefono ?? '')
+    setEmail(empresa?.email ?? '')
+    setCuit(empresa?.cuit ?? '')
+    setDomicilio(empresa?.domicilio ?? '')
+    setLocalidad(empresa?.localidad ?? '')
+    setProvincia(empresa?.provincia ?? '')
+    setNotas(empresa?.notas ?? '')
+  }
 
   function cancelar() {
-    setEditando(false)
+    restablecer()
     setError(null)
-    setNombre(cliente.nombre_razon_social)
-    setTelefono(cliente.telefono ?? '')
-    setWhatsapp(cliente.whatsapp ?? '')
-    setEmail(cliente.email ?? '')
-    setCuitCuil(cliente.cuit_cuil ?? '')
-    setDomicilio(cliente.domicilio ?? '')
-    setLocalidad(cliente.localidad ?? '')
-    setProvincia(cliente.provincia ?? '')
-    setNotas(cliente.notas ?? '')
-    setEmpresaId(cliente.empresa_cliente_id ?? '')
+    setAbierto(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -50,18 +48,11 @@ export default function FormularioEditarCliente({
     setError(null)
     setCargando(true)
 
-    const resultado = await actualizarCliente(cliente.id, {
-      nombre_razon_social: nombre,
-      telefono,
-      whatsapp,
-      email,
-      cuit_cuil: cuitCuil,
-      domicilio,
-      localidad,
-      provincia,
-      notas,
-      empresa_cliente_id: empresaId,
-    })
+    const datos = { nombre, telefono, email, cuit, domicilio, localidad, provincia, notas }
+
+    const resultado = esEdicion
+      ? await actualizarEmpresaCliente(empresa.id, datos)
+      : await crearEmpresaCliente(datos)
 
     setCargando(false)
 
@@ -70,17 +61,35 @@ export default function FormularioEditarCliente({
       return
     }
 
-    setEditando(false)
+    if (!esEdicion) {
+      setNombre('')
+      setTelefono('')
+      setEmail('')
+      setCuit('')
+      setDomicilio('')
+      setLocalidad('')
+      setProvincia('')
+      setNotas('')
+    }
+
+    setAbierto(false)
     router.refresh()
   }
 
-  if (!editando) {
-    return (
+  if (!abierto) {
+    return esEdicion ? (
       <button
-        onClick={() => setEditando(true)}
+        onClick={() => setAbierto(true)}
         className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
       >
-        Editar cliente
+        Editar empresa
+      </button>
+    ) : (
+      <button
+        onClick={() => setAbierto(true)}
+        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+      >
+        + Nueva empresa
       </button>
     )
   }
@@ -90,11 +99,13 @@ export default function FormularioEditarCliente({
       onSubmit={handleSubmit}
       className="mb-6 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
     >
-      <p className="text-sm font-semibold text-gray-900">Editar datos del cliente</p>
+      <p className="text-sm font-semibold text-gray-900">
+        {esEdicion ? 'Editar datos de la empresa' : 'Nueva empresa'}
+      </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Nombre / Razón social</label>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Nombre de la empresa</label>
           <input
             required
             value={nombre}
@@ -111,14 +122,6 @@ export default function FormularioEditarCliente({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">WhatsApp</label>
-          <input
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          />
-        </div>
-        <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
           <input
             type="email"
@@ -128,11 +131,11 @@ export default function FormularioEditarCliente({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL/DNI</label>
+          <label className="mb-1 block text-xs font-medium text-gray-700">CUIT</label>
           <input
-            value={cuitCuil}
-            onChange={(e) => setCuitCuil(e.target.value)}
-            placeholder="20-12345678-9"
+            value={cuit}
+            onChange={(e) => setCuit(e.target.value)}
+            placeholder="30-12345678-9"
             className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
           />
         </div>
@@ -160,10 +163,6 @@ export default function FormularioEditarCliente({
             className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Empresa</label>
-          <SelectorEmpresa empresas={empresas} valor={empresaId} onChange={setEmpresaId} />
-        </div>
       </div>
 
       <div>
@@ -182,7 +181,7 @@ export default function FormularioEditarCliente({
           disabled={cargando}
           className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
         >
-          {cargando ? 'Guardando...' : 'Guardar cambios'}
+          {cargando ? 'Guardando...' : esEdicion ? 'Guardar cambios' : 'Guardar'}
         </button>
         <button
           type="button"

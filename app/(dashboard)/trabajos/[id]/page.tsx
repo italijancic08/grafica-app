@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { obtenerTrabajo } from '@/lib/services/trabajos'
 import { listarClientes } from '@/lib/services/clientes'
+import { listarEmpresasClientes } from '@/lib/services/empresas-clientes'
 import { listarPagosDeTrabajo } from '@/lib/services/pagos'
 import { listarTercerizacionesDeTrabajo } from '@/lib/services/tercerizaciones'
 import { listarComprobantesDeTrabajo } from '@/lib/services/facturas'
@@ -30,6 +31,7 @@ export default async function DetalleTrabajoPage({
 
   // La lista de clientes solo hace falta para poder cambiar el cliente de un presupuesto
   const { data: clientes } = esPresupuesto ? await listarClientes() : { data: [] }
+  const { data: empresas } = await listarEmpresasClientes()
 
   // Pagos, tercerizaciones y comprobantes solo existen una vez aceptado el trabajo
   const { data: pagos } = esTrabajo ? await listarPagosDeTrabajo(id) : { data: [] }
@@ -54,6 +56,7 @@ export default async function DetalleTrabajoPage({
       </div>
       <p className="mb-6 text-sm text-gray-500">
         {t.clientes?.nombre_razon_social} · {t.clientes?.telefono}
+        {t.empresas_clientes && ` · Por parte de ${t.empresas_clientes.nombre}`}
       </p>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -88,6 +91,8 @@ export default async function DetalleTrabajoPage({
         estado={t.estado_operativo}
         clienteId={t.cliente_id}
         clientes={clientes ?? []}
+        empresaClienteId={t.empresa_cliente_id ?? null}
+        empresas={empresas ?? []}
         descripcion={t.descripcion}
         rubro={t.rubro}
         fechaMaxima={t.fecha_maxima}

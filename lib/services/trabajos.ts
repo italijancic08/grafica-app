@@ -12,7 +12,7 @@ export async function listarTrabajos(estados?: EstadoOperativo[]) {
 
   let query = supabase
     .from('trabajos_con_saldo')
-    .select('*, clientes(nombre_razon_social, telefono)')
+    .select('*, clientes(nombre_razon_social, telefono), empresas_clientes(nombre)')
     .order('creado_en', { ascending: false })
 
   if (estados && estados.length > 0) {
@@ -28,7 +28,7 @@ export async function obtenerTrabajo(id: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos_con_saldo')
-    .select('*, clientes(nombre_razon_social, telefono)')
+    .select('*, clientes(nombre_razon_social, telefono), empresas_clientes(nombre)')
     .eq('id', id)
     .single()
 
@@ -50,6 +50,7 @@ export async function crearTrabajo(input: TrabajoInput) {
     .from('trabajos')
     .insert({
       cliente_id: parsed.data.cliente_id,
+      empresa_cliente_id: parsed.data.empresa_cliente_id || null,
       descripcion: parsed.data.descripcion,
       rubro: parsed.data.rubro ?? null,
       precio_final: parsed.data.precio_final ?? 0,
@@ -103,7 +104,7 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
 
   const { data: trabajoAnterior } = await supabase
     .from('trabajos')
-    .select('estado_operativo, cliente_id, descripcion, rubro, fecha_maxima, precio_final, ancho_cm, largo_cm')
+    .select('estado_operativo, cliente_id, empresa_cliente_id, descripcion, rubro, fecha_maxima, precio_final, ancho_cm, largo_cm')
     .eq('id', trabajoId)
     .single()
 
@@ -140,6 +141,10 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
     .update({
       // El cliente solo se puede reasignar mientras es presupuesto
       ...(esPresupuesto && parsed.data.cliente_id ? { cliente_id: parsed.data.cliente_id } : {}),
+      // La empresa se puede cambiar en cualquier momento (vacío = a nombre del cliente)
+      ...(parsed.data.empresa_cliente_id !== undefined
+        ? { empresa_cliente_id: parsed.data.empresa_cliente_id || null }
+        : {}),
       descripcion: parsed.data.descripcion,
       rubro: parsed.data.rubro ?? null,
       fecha_maxima: parsed.data.fecha_maxima || null,
