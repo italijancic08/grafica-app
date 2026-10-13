@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -24,6 +25,8 @@ import {
   Settings,
   LogOut,
   Bell,
+  Menu,
+  X,
 } from 'lucide-react'
 
 import { cerrarSesion } from '@/lib/services/auth'
@@ -73,6 +76,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname()
   const esAdministrador = rol === 'administrador'
+  const [abierto, setAbierto] = useState(false)
 
   function esActivo(href: string) {
     if (href === '/') return pathname === '/'
@@ -91,6 +95,7 @@ export default function Sidebar({
       <Link
         href={href}
         title={nombre}
+        onClick={() => setAbierto(false)}
         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           activo
             ? 'bg-white/10 text-white'
@@ -104,7 +109,47 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="flex h-screen w-56 shrink-0 flex-col bg-zinc-900 px-3 py-5">
+    <>
+    {/* Barra superior: solo en celular */}
+    <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 bg-zinc-900 px-3 md:hidden">
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        aria-label="Abrir menú"
+        aria-expanded={abierto}
+        className="rounded-lg p-2 text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white"
+      >
+        <Menu size={22} strokeWidth={1.75} />
+      </button>
+
+      <div className="min-w-0 leading-tight">
+        <p className="truncate text-sm font-medium text-white">{nombre}</p>
+        <p className="text-xs capitalize text-zinc-400">{rol}</p>
+      </div>
+    </header>
+
+    {/* Fondo oscuro detrás del menú: solo en celular */}
+    {abierto && (
+      <div
+        className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        onClick={() => setAbierto(false)}
+        aria-hidden="true"
+      />
+    )}
+
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-zinc-900 px-3 py-5 transition-transform duration-200 md:static md:z-auto md:h-screen md:w-56 md:shrink-0 md:translate-x-0 ${
+        abierto ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setAbierto(false)}
+        aria-label="Cerrar menú"
+        className="absolute right-2 top-2 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/[0.07] hover:text-white md:hidden"
+      >
+        <X size={20} strokeWidth={1.75} />
+      </button>
       <div className="mb-5 flex shrink-0 flex-col items-center text-center">
         <p className="text-sm font-medium text-white">{nombre}</p>
 
@@ -150,5 +195,6 @@ export default function Sidebar({
         </button>
       </form>
     </aside>
+    </>
   )
 }

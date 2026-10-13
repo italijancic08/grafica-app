@@ -37,9 +37,9 @@ export default async function CajaPage({
 
   return (
     <div className="p-6">
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Caja</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ExportarExcel
             key={mesFiltro}
             movimientos={movimientos ?? []}
@@ -53,7 +53,7 @@ export default async function CajaPage({
       </div>
       <p className="mb-6 text-sm text-gray-500">Caja de {nombreMesAnio(mesFiltro)}</p>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
           <p className="text-xs text-green-700">Ingresos (todas las formas)</p>
           <p className="text-lg font-semibold text-green-700">{formatearMoneda(totalIngresos)}</p>

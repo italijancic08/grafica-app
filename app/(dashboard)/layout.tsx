@@ -13,10 +13,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <div className="sticky top-0 h-screen shrink-0">
+      <div className="md:sticky md:top-0 md:h-screen md:shrink-0">
         <Sidebar nombre={perfil?.nombre ?? 'Usuario'} rol={perfil?.rol ?? ''} />
       </div>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1 pt-14 md:pt-0">{children}</main>
     </div>
   )
 }

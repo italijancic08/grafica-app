@@ -2,20 +2,24 @@ import Link from 'next/link'
 import {
   ClipboardList,
   Users,
+  UserCog,
   PackageCheck,
   Wallet,
+  WalletCards,
   Truck,
   Boxes,
   Banknote,
   Calculator,
   FileSpreadsheet,
-  AlertCircle,
+  Bell,
   Settings,
   Tags,
   CalendarDays,
   Search,
   Clock3,
   Receipt,
+  BarChart3,
+  History,
 } from 'lucide-react'
 
 import { obtenerResumenDashboard } from '@/lib/services/dashboard'
@@ -31,26 +35,54 @@ import {
 
 import BuscadorClientesDashboard from './buscador-clientes-dashboard'
 
-const MODULOS: {
+type Modulo = {
   nombre: string
   href: string
   icono: typeof ClipboardList
-  soloAdministrador?: boolean
-}[] = [
+}
+
+// Accesos para administrador y empleado (mismo orden que el sidebar)
+const MODULOS: Modulo[] = [
   { nombre: 'Trabajos', href: '/trabajos', icono: ClipboardList },
   { nombre: 'Clientes', href: '/clientes', icono: Users },
+  { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
+  { nombre: 'Turnos', href: '/turnos', icono: CalendarDays },
   { nombre: 'Para retirar', href: '/para-retirar', icono: PackageCheck },
   { nombre: 'Pendientes de pago', href: '/deudas', icono: Wallet },
-  { nombre: 'Tercerizados', href: '/tercerizados', icono: Truck },
-  { nombre: 'Stock', href: '/stock', icono: Boxes },
   { nombre: 'Caja', href: '/caja', icono: Banknote },
-  { nombre: 'Calculadoras', href: '/calculadoras', icono: Calculator },
-  { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
-  { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },
-  { nombre: 'Usuarios', href: '/usuarios', icono: Users, soloAdministrador: true },
-  { nombre: 'Configuración', href: '/configuracion', icono: Settings, soloAdministrador: true },
+  { nombre: 'Fichaje', href: '/fichaje', icono: Clock3 },
+  { nombre: 'Stock', href: '/stock', icono: Boxes },
   { nombre: 'Lista de precios', href: '/lista-precios', icono: Tags },
+  { nombre: 'Tercerizaciones', href: '/tercerizados', icono: Truck },
+  { nombre: 'Calculadoras', href: '/calculadoras', icono: Calculator },
+  { nombre: 'Facturas', href: '/facturas', icono: Receipt },
+  { nombre: 'Notificaciones', href: '/alertas', icono: Bell },
 ]
+
+// Accesos solo para administrador
+const MODULOS_ADMINISTRADOR: Modulo[] = [
+  { nombre: 'Usuarios', href: '/usuarios', icono: UserCog },
+  { nombre: 'Paga', href: '/paga', icono: WalletCards },
+  { nombre: 'Reportes', href: '/reportes', icono: BarChart3 },
+  { nombre: 'Auditoría', href: '/auditoria', icono: History },
+  { nombre: 'Configuración', href: '/configuracion', icono: Settings },
+]
+
+// Las columnas se adaptan solas al ancho: 1 en celular, más en pantallas grandes
+const GRILLA_ACCESOS =
+  'grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-3'
+
+function AccesoDirecto({ nombre, href, icono: Icono }: Modulo) {
+  return (
+    <Link
+      href={href}
+      className="flex min-w-0 items-center gap-2 rounded-full bg-gray-800 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+    >
+      <Icono size={16} strokeWidth={1.75} className="shrink-0" />
+      <span className="truncate">{nombre}</span>
+    </Link>
+  )
+}
 
 function diasEntreFechas(fechaInicial: string, fechaFinal: string) {
   const [anioInicial, mesInicial, diaInicial] = fechaInicial
@@ -99,10 +131,6 @@ export default async function DashboardPage() {
 
   const administrador = await esAdministrador()
 
-  const modulosVisibles = MODULOS.filter(
-    (modulo) => !modulo.soloAdministrador || administrador
-  )
-
   const presupuestosSinPrecio = resultadoPresupuestos.error
     ? []
     : (resultadoPresupuestos.data ?? []).filter(
@@ -144,7 +172,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 sm:p-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-lg font-semibold text-gray-900">
           Fecha: {formatearFecha(hoy)}
         </h1>
@@ -312,20 +340,27 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Accesos rápidos originales */}
-      <div className="rounded-2xl bg-gray-200/50 p-5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {modulosVisibles.map((modulo) => (
-            <Link
-              key={modulo.href}
-              href={modulo.href}
-              className="flex items-center gap-2 rounded-full bg-gray-800 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700"
-            >
-              <modulo.icono size={16} strokeWidth={1.75} />
-              {modulo.nombre}
-            </Link>
+      {/* Accesos directos */}
+      <div className="rounded-2xl bg-gray-200/50 p-4 sm:p-5">
+        <div className={GRILLA_ACCESOS}>
+          {MODULOS.map((modulo) => (
+            <AccesoDirecto key={modulo.href} {...modulo} />
           ))}
         </div>
+
+        {administrador && (
+          <>
+            <p className="mb-3 mt-5 border-t border-gray-300/70 pt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Administración
+            </p>
+
+            <div className={GRILLA_ACCESOS}>
+              {MODULOS_ADMINISTRADOR.map((modulo) => (
+                <AccesoDirecto key={modulo.href} {...modulo} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
