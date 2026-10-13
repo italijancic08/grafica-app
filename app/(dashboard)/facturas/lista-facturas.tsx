@@ -22,39 +22,6 @@ type FacturaConRelaciones = Factura & {
     | null
 }
 
-function obtenerEstadoEnvio(factura: Factura) {
-  switch (factura.estado_envio) {
-    case 'ENVIADO_WHATSAPP':
-      return {
-        texto: 'Enviado por WhatsApp',
-        clase:
-          'bg-green-100 text-green-700',
-      }
-
-    case 'ENVIADO_EMAIL':
-      return {
-        texto: 'Enviado por email',
-        clase:
-          'bg-blue-100 text-blue-700',
-      }
-
-    case 'NO_ENVIADO':
-      return {
-        texto: 'No enviado',
-        clase:
-          'bg-red-100 text-red-700',
-      }
-
-    case 'PENDIENTE':
-    default:
-      return {
-        texto: 'Pendiente',
-        clase:
-          'bg-yellow-100 text-yellow-700',
-      }
-  }
-}
-
 export default function ListaFacturas({
   facturas,
 }: {
@@ -129,27 +96,16 @@ export default function ListaFacturas({
           ? f.clientes[0]
           : f.clientes
 
-        const estado =
-          obtenerEstadoEnvio(f)
-
         return (
           <div
             key={f.id}
             className="flex items-center justify-between gap-4 p-3 text-sm"
           >
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">
-                  {f.numero ??
-                    '(sin número)'}
-                </p>
-
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${estado.clase}`}
-                >
-                  {estado.texto}
-                </span>
-              </div>
+              <p className="font-medium">
+                {f.numero ??
+                  '(sin número)'}
+              </p>
 
               <p className="text-xs text-gray-500">
                 {
@@ -168,23 +124,6 @@ export default function ListaFacturas({
                 {trabajo &&
                   ` · ${trabajo.numero}`}
               </p>
-
-              {f.estado_envio ===
-                'ENVIADO_EMAIL' &&
-                f.error_envio && (
-                  <p className="mt-1 text-[11px] text-gray-400">
-                    Enviado por email como
-                    alternativa.
-                  </p>
-                )}
-
-              {f.estado_envio ===
-                'NO_ENVIADO' &&
-                f.error_envio && (
-                  <p className="mt-1 max-w-xl text-[11px] text-red-500">
-                    {f.error_envio}
-                  </p>
-                )}
             </div>
 
             {f.archivo_pdf_url ? (

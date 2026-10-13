@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { generarPdfComprobante } from '@/lib/pdf/comprobante'
-import { enviarComprobanteConFallback } from '@/lib/services/envio-comprobante'
 import { revalidatePath } from 'next/cache'
 
 export async function listarComprobantesDeTrabajo(
@@ -196,44 +195,15 @@ export async function generarComprobante(
     }
   }
 
-  // =========================================================
-  // ENVIAR AUTOMÁTICAMENTE
-  // WHATSAPP → EMAIL → NO ENVIADO
-  // =========================================================
-
-  const resultadoEnvio =
-    await enviarComprobanteConFallback({
-      facturaId: factura.id,
-      numero: factura.numero,
-      nombreCliente:
-        cliente.nombre_razon_social,
-      whatsapp: cliente.whatsapp,
-      email: cliente.email,
-      pdf: pdfBuffer,
-    })
-
-  // =========================================================
-  // RECUPERAR ESTADO FINAL
-  // =========================================================
-
-  const { data: facturaActualizada } =
-    await supabase
-      .from('facturas')
-      .select('*')
-      .eq('id', factura.id)
-      .single()
-
   revalidatePath(`/trabajos/${trabajoId}`)
   revalidatePath('/facturas')
   revalidatePath('/documentos')
 
   return {
-    data: facturaActualizada ?? {
+    data: {
       ...factura,
       archivo_pdf_url: rutaArchivo,
     },
-
-    envio: resultadoEnvio,
   }
 }
 

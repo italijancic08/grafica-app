@@ -14,7 +14,7 @@ export default async function AlertasPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-1 text-xl font-semibold text-gray-900">Alertas</h1>
+      <h1 className="mb-1 text-xl font-semibold text-gray-900">Notificaciones</h1>
       <p className="mb-6 text-sm text-gray-500">
         Se recalculan en el momento: en cuanto resolvés el problema de fondo, la alerta desaparece sola.
       </p>

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import FormularioCambiarContrasena from './formulario-cambiar-contrasena'
 
 export default async function MiCuentaPage() {
   const supabase = await createClient()
@@ -28,6 +29,8 @@ export default async function MiCuentaPage() {
           <p className="capitalize text-gray-900">{perfil?.rol ?? '—'}</p>
         </div>
       </div>
+
+      <FormularioCambiarContrasena />
     </div>
   )
 }
