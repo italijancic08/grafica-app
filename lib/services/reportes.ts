@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 
 export interface FiltrosReporte {
   desde: string // YYYY-MM-DD
@@ -12,6 +13,9 @@ export interface FiltrosReporte {
 // pagos efectivamente registrados en el período (pueden corresponder a
 // trabajos ingresados antes). Son dos números distintos a propósito.
 export async function obtenerResumenPeriodo({ desde, hasta }: FiltrosReporte) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
 
   const [trabajosRes, pagosRes] = await Promise.all([
@@ -37,6 +41,9 @@ export async function obtenerResumenPeriodo({ desde, hasta }: FiltrosReporte) {
 }
 
 export async function obtenerVentasPorRubro({ desde, hasta }: FiltrosReporte) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos')
@@ -63,6 +70,9 @@ export async function obtenerVentasPorRubro({ desde, hasta }: FiltrosReporte) {
 }
 
 export async function obtenerRankingClientes({ desde, hasta }: FiltrosReporte, limite = 10) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos')
@@ -95,6 +105,9 @@ export async function obtenerRankingClientes({ desde, hasta }: FiltrosReporte, l
 // es fecha_finalizacion si existe (cuando terminó producción), si no
 // fecha_retiro.
 export async function obtenerProductividad({ desde, hasta }: FiltrosReporte) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos')

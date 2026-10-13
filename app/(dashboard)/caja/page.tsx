@@ -6,6 +6,7 @@ import SelectorMes from './selector-mes'
 import FilaMovimientoCaja from './fila-movimiento-caja'
 import CierreMensualControl from './cierre-mensual'
 import ExportarExcel from './exportar-excel'
+import { esAdministrador } from '@/lib/auth/roles'
 
 export default async function CajaPage({
   searchParams,
@@ -13,6 +14,7 @@ export default async function CajaPage({
   searchParams: Promise<{ mes?: string }>
 }) {
   const { mes } = await searchParams
+  const administrador = await esAdministrador()
   const mesFiltro = mes ?? mesActualArgentina()
   const [anioNum, mesNum] = mesFiltro.split('-').map(Number)
   const esMesActualOFuturo = mesFiltro >= mesActualArgentina()
@@ -68,15 +70,17 @@ export default async function CajaPage({
         </div>
       </div>
 
-      <div className="mb-6">
-        <CierreMensualControl
-          mes={mesNum}
-          anio={anioNum}
-          cierre={cierre ?? null}
-          cajaFisica={cajaFisica}
-          esMesActualOFuturo={esMesActualOFuturo}
-        />
-      </div>
+      {administrador && (
+        <div className="mb-6">
+          <CierreMensualControl
+            mes={mesNum}
+            anio={anioNum}
+            cierre={cierre ?? null}
+            cajaFisica={cajaFisica}
+            esMesActualOFuturo={esMesActualOFuturo}
+          />
+        </div>
+      )}
 
       <FormularioMovimientoCaja bloqueado={bloqueado} />
 

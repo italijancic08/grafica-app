@@ -61,10 +61,7 @@ async function verificarAdministrador() {
     .eq('id', user.id)
     .single()
 
-  if (
-    usuario?.rol !== 'administrador' &&
-    usuario?.rol !== 'supervisor'
-  ) {
+  if (usuario?.rol !== 'administrador') {
     return {
       error: 'No tenés permisos para consultar las liquidaciones.',
       user,

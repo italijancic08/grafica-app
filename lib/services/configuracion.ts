@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { umbralCajaBajaSchema } from '@/lib/validations/configuracion'
 import { registrarAuditoria } from '@/lib/services/auditoria'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 
 const UMBRAL_CAJA_BAJA_DEFAULT = 10000
@@ -27,6 +28,11 @@ export async function obtenerUmbralCajaBaja(): Promise<number> {
 export async function actualizarUmbralCajaBaja(
   input: { monto: number }
 ) {
+  const sinPermiso = await errorSiNoEsAdministrador(
+    'Solo un administrador puede modificar la configuración.'
+  )
+  if (sinPermiso) return sinPermiso
+
   const parsed =
     umbralCajaBajaSchema.safeParse(input)
 

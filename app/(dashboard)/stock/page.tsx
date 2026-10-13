@@ -1,8 +1,10 @@
 import { listarMateriales } from '@/lib/services/materiales'
 import FormularioMaterial from './formulario-material'
 import FilaMaterial from './fila-material'
+import { esAdministrador } from '@/lib/auth/roles'
 
 export default async function StockPage() {
+  const administrador = await esAdministrador()
   const { data: materiales, error } = await listarMateriales()
 
   return (
@@ -11,7 +13,7 @@ export default async function StockPage() {
         <h1 className="text-xl font-semibold text-gray-900">Stock</h1>
       </div>
 
-      <FormularioMaterial />
+      {administrador && <FormularioMaterial />}
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">

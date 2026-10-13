@@ -7,8 +7,11 @@ import {
 import FormularioEmpresa from './formulario-empresa'
 import FormularioUmbral from './formulario-umbral'
 import FormularioValorHora from './formulario-valor-hora'
+import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 
 export default async function ConfiguracionPage() {
+  await redirigirSiNoEsAdministrador()
+
   const { data: empresa } =
     await obtenerEmpresa()
 

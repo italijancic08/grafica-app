@@ -1,7 +1,10 @@
 import { listarUsuarios } from '@/lib/services/usuarios'
 import FormularioUsuario from './formulario-usuario'
+import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 
 export default async function UsuariosPage() {
+  await redirigirSiNoEsAdministrador()
+
   const { data: usuarios, error } = await listarUsuarios()
 
   return (

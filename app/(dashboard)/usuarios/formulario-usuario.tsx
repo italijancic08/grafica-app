@@ -74,7 +74,6 @@ export default function FormularioUsuario() {
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         >
           <option value="empleado">Empleado</option>
-          <option value="supervisor">Supervisor</option>
           <option value="administrador">Administrador</option>
         </select>
       </div>

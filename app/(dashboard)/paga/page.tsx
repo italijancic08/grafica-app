@@ -3,6 +3,7 @@ import {
 } from '@/lib/services/liquidaciones'
 
 import DescargarLiquidacion from './descargar-liquidacion'
+import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 
 function dinero(valor: number) {
   return new Intl.NumberFormat(
@@ -21,6 +22,8 @@ function fecha(fecha: string) {
 }
 
 export default async function PagaPage() {
+  await redirigirSiNoEsAdministrador()
+
   const resultado =
     await listarLiquidaciones()
 

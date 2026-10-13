@@ -21,6 +21,7 @@ import {
 import { obtenerResumenDashboard } from '@/lib/services/dashboard'
 import { obtenerUmbralCajaBaja } from '@/lib/services/configuracion'
 import { listarTrabajos, listarTurnos } from '@/lib/services/trabajos'
+import { esAdministrador } from '@/lib/auth/roles'
 
 import {
   formatearMoneda,
@@ -30,7 +31,12 @@ import {
 
 import BuscadorClientesDashboard from './buscador-clientes-dashboard'
 
-const MODULOS = [
+const MODULOS: {
+  nombre: string
+  href: string
+  icono: typeof ClipboardList
+  soloAdministrador?: boolean
+}[] = [
   { nombre: 'Trabajos', href: '/trabajos', icono: ClipboardList },
   { nombre: 'Clientes', href: '/clientes', icono: Users },
   { nombre: 'Para retirar', href: '/para-retirar', icono: PackageCheck },
@@ -41,8 +47,8 @@ const MODULOS = [
   { nombre: 'Calculadoras', href: '/calculadoras', icono: Calculator },
   { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
   { nombre: 'Alertas', href: '/alertas', icono: AlertCircle },
-  { nombre: 'Usuarios', href: '/usuarios', icono: Users },
-  { nombre: 'Configuración', href: '/configuracion', icono: Settings },
+  { nombre: 'Usuarios', href: '/usuarios', icono: Users, soloAdministrador: true },
+  { nombre: 'Configuración', href: '/configuracion', icono: Settings, soloAdministrador: true },
   { nombre: 'Lista de precios', href: '/lista-precios', icono: Tags },
 ]
 
@@ -90,6 +96,12 @@ export default async function DashboardPage() {
     listarTrabajos(['PRESUPUESTO']),
     listarTurnos(),
   ])
+
+  const administrador = await esAdministrador()
+
+  const modulosVisibles = MODULOS.filter(
+    (modulo) => !modulo.soloAdministrador || administrador
+  )
 
   const presupuestosSinPrecio = resultadoPresupuestos.error
     ? []
@@ -303,7 +315,7 @@ export default async function DashboardPage() {
       {/* Accesos rápidos originales */}
       <div className="rounded-2xl bg-gray-200/50 p-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {MODULOS.map((modulo) => (
+          {modulosVisibles.map((modulo) => (
             <Link
               key={modulo.href}
               href={modulo.href}

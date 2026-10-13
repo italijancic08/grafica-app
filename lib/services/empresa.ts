@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { empresaSchema, type EmpresaInput } from '@/lib/validations/empresa'
 import { registrarAuditoria } from '@/lib/services/auditoria'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 
 export async function obtenerEmpresa() {
@@ -18,6 +19,11 @@ export async function obtenerEmpresa() {
 }
 
 export async function actualizarEmpresa(input: EmpresaInput) {
+  const sinPermiso = await errorSiNoEsAdministrador(
+    'Solo un administrador puede modificar los datos de la empresa.'
+  )
+  if (sinPermiso) return sinPermiso
+
   const parsed = empresaSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 
 export interface CierreMensual {
   id: string
@@ -44,6 +45,11 @@ export async function listarMesesCerrados() {
 }
 
 export async function cerrarMes(mes: number, anio: number) {
+  const sinPermiso = await errorSiNoEsAdministrador(
+    'Solo un administrador puede cerrar la caja del mes.'
+  )
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

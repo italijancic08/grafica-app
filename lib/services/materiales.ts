@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { materialSchema, movimientoSchema, type MaterialInput, type MovimientoInput } from '@/lib/validations/material'
 import { registrarAuditoria } from '@/lib/services/auditoria'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 
 export async function listarMateriales() {
@@ -17,6 +18,11 @@ export async function listarMateriales() {
 }
 
 export async function crearMaterial(input: MaterialInput) {
+  const sinPermiso = await errorSiNoEsAdministrador(
+    'Solo un administrador puede crear materiales (incluyen costos).'
+  )
+  if (sinPermiso) return sinPermiso
+
   const parsed = materialSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }

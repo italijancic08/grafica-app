@@ -7,8 +7,10 @@ import {
 import ListaFacturas from '../facturas/lista-facturas'
 import DescargarExcelMes from './descargar-excel-mes'
 import DescargarLiquidacionDocumento from './descargar-liquidacion-documento'
+import { esAdministrador } from '@/lib/auth/roles'
 
 export default async function DocumentosPage() {
+  const administrador = await esAdministrador()
   const {
     data: facturas,
     error: errorFacturas,
@@ -22,7 +24,9 @@ export default async function DocumentosPage() {
   const {
     data: liquidaciones,
     error: errorLiquidaciones,
-  } = await listarLiquidaciones()
+  } = administrador
+    ? await listarLiquidaciones()
+    : { data: undefined, error: undefined }
 
   return (
     <div className="p-8">
@@ -35,6 +39,8 @@ export default async function DocumentosPage() {
         liquidaciones de trabajadores.
       </p>
 
+      {administrador && (
+        <>
       <h2 className="mb-2 text-sm font-semibold text-gray-900">
         Liquidaciones de trabajadores
       </h2>
@@ -88,6 +94,8 @@ export default async function DocumentosPage() {
             )}
           </div>
         )}
+        </>
+      )}
 
       <h2 className="mb-2 text-sm font-semibold text-gray-900">
         Comprobantes

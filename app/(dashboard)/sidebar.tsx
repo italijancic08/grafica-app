@@ -23,7 +23,10 @@ import {
   BarChart3,
   History,
   Settings,
+  LogOut,
 } from 'lucide-react'
+
+import { cerrarSesion } from '@/lib/services/auth'
 
 const NAV_COMPARTIDA = [
   { nombre: 'Panel', href: '/', icono: LayoutDashboard },
@@ -130,6 +133,20 @@ export default function Sidebar({
           )}
         </div>
       </div>
+
+      <form
+        action={cerrarSesion}
+        className="mt-3 shrink-0 border-t border-zinc-700 pt-3"
+      >
+        <button
+          type="submit"
+          title="Cerrar sesión"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/[0.07] hover:text-white"
+        >
+          <LogOut size={18} strokeWidth={1.75} className="shrink-0" />
+          <span>Cerrar sesión</span>
+        </button>
+      </form>
     </aside>
   )
 }

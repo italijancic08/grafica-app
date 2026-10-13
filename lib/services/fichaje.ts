@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 import {
   calcularHoras,
   obtenerSemanaActual,
@@ -185,12 +186,9 @@ export async function listarFichajesSemana(
 
   /*
    * Un empleado puede consultar sus propios fichajes.
-   * Administradores y supervisores pueden consultar todos.
+   * Los administradores pueden consultar todos.
    */
-  if (
-    usuario.rol !== 'administrador' &&
-    usuario.rol !== 'supervisor'
-  ) {
+  if (usuario.rol !== 'administrador') {
     query = query.eq('usuario_id', usuario.id)
   } else if (usuarioId) {
     query = query.eq('usuario_id', usuarioId)
@@ -210,6 +208,9 @@ export async function listarFichajesRango(
   inicio: Date,
   fin: Date
 ) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return sinPermiso
+
   const supabase = await createClient()
 
   const { data, error } = await supabase

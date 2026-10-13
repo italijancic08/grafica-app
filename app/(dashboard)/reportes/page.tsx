@@ -4,6 +4,7 @@ import {
 import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
 import { formatearMoneda, fechaHoyArgentina } from '@/lib/utils/formato'
 import FiltroFechas from './filtro-fechas'
+import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 
 function primerYUltimoDiaDelMesActual() {
   const hoy = fechaHoyArgentina()
@@ -19,6 +20,8 @@ export default async function ReportesPage({
 }: {
   searchParams: Promise<{ desde?: string; hasta?: string }>
 }) {
+  await redirigirSiNoEsAdministrador()
+
   const params = await searchParams
   const { primerDia, ultimoDia } = primerYUltimoDiaDelMesActual()
   const desde = params.desde ?? primerDia
