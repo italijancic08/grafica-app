@@ -25,7 +25,7 @@ export default function FormularioEmpresa({ empresa }: { empresa: Empresa | null
     try {
       const resultado = await actualizarEmpresa({ nombre, cuit, direccion, telefono, email })
 
-      if (resultado.error) {
+      if ("error" in resultado && resultado.error) {
         setError(resultado.error)
         return
       }

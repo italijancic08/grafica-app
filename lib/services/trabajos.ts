@@ -395,7 +395,22 @@ export async function listarTurnos() {
     .order('fecha', { ascending: true, nullsFirst: true })
     .order('hora', { ascending: true, nullsFirst: true })
   if (error) return { error: error.message }
-  return { data: data ?? [] }
+  // Normalizar relaciones que Supabase tipa como arrays sin un esquema generado.
+  const turnos = (data ?? []).map((turno) => {
+    const trabajo = Array.isArray(turno.trabajos) ? turno.trabajos[0] : turno.trabajos
+    const cliente = trabajo && (Array.isArray(trabajo.clientes) ? trabajo.clientes[0] : trabajo.clientes)
+    const instalador = Array.isArray(turno.instaladores) ? turno.instaladores[0] : turno.instaladores
+    return {
+      ...turno,
+      instaladores: instalador ?? null,
+      trabajos: {
+        ...trabajo,
+        estado_operativo: trabajo?.estado_operativo as EstadoOperativo,
+        clientes: cliente ?? null,
+      },
+    }
+  })
+  return { data: turnos }
 }
 
 

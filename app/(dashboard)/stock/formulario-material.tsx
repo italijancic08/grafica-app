@@ -44,7 +44,7 @@ export default function FormularioMaterial() {
         costo_unitario: costoUnitarioCalculado,
       })
 
-      if (resultado.error) {
+      if ("error" in resultado && resultado.error) {
         setError(resultado.error)
         return
       }

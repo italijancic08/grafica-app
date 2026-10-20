@@ -56,7 +56,7 @@ export default function CierreMensualControl({
 
     try {
       const resultado = await cerrarMes(mes, anio)
-      if (resultado.error) {
+      if ("error" in resultado && resultado.error) {
         setError(resultado.error)
         return
       }

@@ -28,17 +28,20 @@ export default async function ReportesPage({
   const hasta = params.hasta ?? ultimoDia
   const filtros = { desde, hasta }
 
-  const [
-    { data: resumen, error: errorResumen },
-    { data: ventasPorRubro, error: errorRubro },
-    { data: ranking, error: errorRanking },
-    { data: productividad, error: errorProductividad },
-  ] = await Promise.all([
+  const [resResumen, resRubro, resRanking, resProductividad] = await Promise.all([
     obtenerResumenPeriodo(filtros),
     obtenerVentasPorRubro(filtros),
     obtenerRankingClientes(filtros),
     obtenerProductividad(filtros),
   ])
+  const resumen = 'data' in resResumen ? resResumen.data : undefined
+  const ventasPorRubro = 'data' in resRubro ? resRubro.data : undefined
+  const ranking = 'data' in resRanking ? resRanking.data : undefined
+  const productividad = 'data' in resProductividad ? resProductividad.data : undefined
+  const errorResumen = 'error' in resResumen ? resResumen.error : undefined
+  const errorRubro = 'error' in resRubro ? resRubro.error : undefined
+  const errorRanking = 'error' in resRanking ? resRanking.error : undefined
+  const errorProductividad = 'error' in resProductividad ? resProductividad.error : undefined
 
   const errorGeneral = errorResumen ?? errorRubro ?? errorRanking ?? errorProductividad
   const totalRubro = ventasPorRubro?.[0]?.total ?? 0

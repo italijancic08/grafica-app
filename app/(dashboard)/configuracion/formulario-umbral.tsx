@@ -20,7 +20,7 @@ export default function FormularioUmbral({ umbralActual }: { umbralActual: numbe
     try {
       const resultado = await actualizarUmbralCajaBaja({ monto: Number(monto) })
 
-      if (resultado.error) {
+      if ("error" in resultado && resultado.error) {
         setError(resultado.error)
         return
       }

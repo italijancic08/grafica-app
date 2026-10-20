@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { listarTercerizaciones } from '@/lib/services/tercerizaciones'
-import { ETIQUETAS_ESTADO_TERCERIZACION } from '@/lib/types/tercerizacion'
+import { ETIQUETAS_ESTADO_TERCERIZACION, type EstadoTercerizacion } from '@/lib/types/tercerizacion'
 import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
 import BotonMarcarVuelta from './boton-marcar-vuelta'
 
@@ -53,7 +53,7 @@ export default async function TercerizadosPage() {
                   <td className="px-4 py-2">{tc.costo ? formatearMoneda(tc.costo) : '—'}</td>
                   <td className="px-4 py-2">
                     <span className={demorado ? 'font-medium text-red-600' : ''}>
-                      {ETIQUETAS_ESTADO_TERCERIZACION[tc.estado]}
+                      {ETIQUETAS_ESTADO_TERCERIZACION[tc.estado as EstadoTercerizacion]}
                       {demorado && ' (demorado)'}
                     </span>
                   </td>
