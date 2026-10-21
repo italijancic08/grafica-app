@@ -9,6 +9,10 @@ import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
 import FormularioEmpresaCliente from '../formulario-empresa-cliente'
 
+import AutorizacionGratuitos from '../../autorizacion-gratuitos'
+import { esAdministrador } from '@/lib/auth/roles'
+
+
 export default async function FichaEmpresaClientePage({
   params,
 }: {
@@ -19,8 +23,11 @@ export default async function FichaEmpresaClientePage({
 
   if (error || !empresa) notFound()
 
-  const { data: clientes } = await listarClientesDeEmpresa(id)
-  const { data: trabajos } = await obtenerTrabajosDeEmpresa(id)
+  
+const { data: clientes } = await listarClientesDeEmpresa(id)
+const { data: trabajos } = await obtenerTrabajosDeEmpresa(id)
+const administrador = await esAdministrador()
+
 
   // Los presupuestos (pendientes o rechazados) no cuentan como compra ni como deuda
   const trabajosAceptados = trabajos?.filter(

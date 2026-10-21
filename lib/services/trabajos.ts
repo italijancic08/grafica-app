@@ -116,6 +116,25 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
 
   const esPresupuesto = trabajoAnterior.estado_operativo === 'PRESUPUESTO'
 
+  // Un precio cero solo está permitido para clientes o empresas autorizados.
+  // La base de datos verifica el permiso también en el momento de guardar.
+  if (!esPresupuesto && Number(parsed.data.precio_final) === 0) {
+    const empresaId = parsed.data.empresa_cliente_id !== undefined
+      ? parsed.data.empresa_cliente_id || null
+      : trabajoAnterior.empresa_cliente_id
+    const { data: autorizado, error: errorAutorizacion } = await supabase.rpc(
+      'cliente_puede_recibir_gratis', {
+        p_cliente_id: trabajoAnterior.cliente_id,
+        p_empresa_id: empresaId,
+      }
+    )
+    if (errorAutorizacion) return { error: errorAutorizacion.message }
+    // No bloquear la edición de un trabajo que ya tenía precio cero.
+    if (!autorizado && Number(trabajoAnterior.precio_final) !== 0) {
+      return { error: 'El cliente o empresa no está autorizado para trabajos gratuitos.' }
+    }
+  }
+
   // El rubro puede quedar sin definir solo mientras es presupuesto
   if (!esPresupuesto && !parsed.data.rubro) {
     return { error: 'Seleccioná un rubro' }
@@ -267,21 +286,20 @@ export async function listarConDeuda() {
   const { data, error } = await supabase
     .from('trabajos_con_saldo')
     .select('*, clientes(nombre_razon_social, telefono, whatsapp)')
-    .eq('estado_operativo', 'RETIRADO')
     .gt('saldo', 0)
+    .eq('estado_operativo', 'RETIRADO')
     .order('saldo', { ascending: false })
 
   if (error) return { error: error.message }
   return { data }
 }
-
 export async function aceptarPresupuesto(trabajoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: actual, error: errorActual } = await supabase
     .from('trabajos')
-    .select('estado_operativo, precio_final, rubro, numero, requiere_turno')
+    .select('estado_operativo, precio_final, rubro, numero, requiere_turno, cliente_id, empresa_cliente_id')
     .eq('id', trabajoId)
     .single()
 
@@ -290,8 +308,17 @@ export async function aceptarPresupuesto(trabajoId: string) {
   if (actual.estado_operativo !== 'PRESUPUESTO') {
     return { error: 'Este trabajo ya no está en fase de presupuesto.' }
   }
-  if (!actual.precio_final || Number(actual.precio_final) <= 0) {
-    return { error: 'Para aceptar el presupuesto tenés que cargar un precio mayor a $0.' }
+  if (Number(actual.precio_final) === 0) {
+    const { data: autorizado, error: errorAutorizacion } = await supabase.rpc(
+      'cliente_puede_recibir_gratis', {
+        p_cliente_id: actual.cliente_id,
+        p_empresa_id: actual.empresa_cliente_id,
+      }
+    )
+    if (errorAutorizacion) return { error: errorAutorizacion.message }
+    if (!autorizado) {
+      return { error: 'El cliente o empresa no está autorizado para trabajos gratuitos.' }
+    }
   }
   if (!actual.rubro) {
     return { error: 'Para aceptar el presupuesto tenés que elegir un rubro.' }

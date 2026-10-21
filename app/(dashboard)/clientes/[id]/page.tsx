@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { obtenerCliente, obtenerTrabajosDeCliente } from '@/lib/services/clientes'
 import { listarEmpresasClientes } from '@/lib/services/empresas-clientes'
 import FormularioEditarCliente from '../formulario-editar-cliente'
+import AutorizacionGratuitos from '../autorizacion-gratuitos'
+import { esAdministrador } from '@/lib/auth/roles'
 import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 
 function formatearMoneda(valor: number) {
@@ -21,6 +23,7 @@ export default async function FichaClientePage({
 
   const { data: trabajos } = await obtenerTrabajosDeCliente(id)
   const { data: empresas } = await listarEmpresasClientes()
+  const administrador = await esAdministrador()
 
   // Los presupuestos (pendientes o rechazados) no cuentan como compra ni como deuda
   const trabajosAceptados = trabajos?.filter(
@@ -46,6 +49,13 @@ export default async function FichaClientePage({
           </>
         )}
       </p>
+
+      <AutorizacionGratuitos
+        tipo="cliente"
+        id={cliente.id}
+        permitido={cliente.permite_trabajos_gratis ?? false}
+        administrador={administrador}
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-gray-200 p-4">

@@ -13,4 +13,5 @@ export interface Cliente {
   empresas_clientes?: { nombre: string } | null
   creado_en: string
   modificado_en: string
+  permite_trabajos_gratis: boolean
 }
