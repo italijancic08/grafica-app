@@ -1,37 +1,57 @@
+
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { aceptarPresupuesto, rechazarPresupuesto } from '@/lib/services/trabajos'
+import {
+  aceptarPresupuesto,
+  rechazarPresupuesto,
+} from '@/lib/services/trabajos'
 
 export default function AccionesPresupuesto({
   trabajoId,
   precioFinal,
   tieneRubro,
+  permiteTrabajosGratis,
 }: {
   trabajoId: string
   precioFinal: number
   tieneRubro: boolean
+  permiteTrabajosGratis: boolean
 }) {
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
   const [confirmandoRechazo, setConfirmandoRechazo] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const esGratuito = precioFinal === 0 && permiteTrabajosGratis
+
   const faltantes: string[] = []
-  if (!(precioFinal > 0)) faltantes.push('un precio mayor a $0')
-  if (!tieneRubro) faltantes.push('el rubro')
+
+  if (!(precioFinal > 0) && !esGratuito) {
+    faltantes.push(
+      'un precio mayor a $0 o una autorización para trabajos gratuitos'
+    )
+  }
+
+  if (!tieneRubro) {
+    faltantes.push('el rubro')
+  }
+
   const puedeAceptar = faltantes.length === 0
 
   async function handleAceptar() {
     setError(null)
     setCargando(true)
+
     try {
       const resultado = await aceptarPresupuesto(trabajoId)
+
       if (resultado.error) {
         setError(resultado.error)
         return
       }
+
       router.refresh()
     } catch (err) {
       console.error(err)
@@ -44,12 +64,15 @@ export default function AccionesPresupuesto({
   async function handleRechazar() {
     setError(null)
     setCargando(true)
+
     try {
       const resultado = await rechazarPresupuesto(trabajoId)
+
       if (resultado.error) {
         setError(resultado.error)
         return
       }
+
       router.push('/presupuestos')
     } catch (err) {
       console.error(err)
@@ -61,15 +84,26 @@ export default function AccionesPresupuesto({
 
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-gray-700">Respuesta del cliente</p>
-      <p className="mb-3 text-xs text-gray-500">
-        Si el cliente acepta, el presupuesto pasa a ser un trabajo y sigue el flujo normal.
-        Si lo rechaza, se descarta.
+      <p className="mb-1 text-sm font-medium text-gray-700">
+        Respuesta del cliente
       </p>
+
+      <p className="mb-3 text-xs text-gray-500">
+        Si el cliente acepta, el presupuesto pasa a ser un trabajo
+        y sigue el flujo normal. Si lo rechaza, se descarta.
+      </p>
+
+      {esGratuito && (
+        <p className="mb-3 rounded-md bg-green-50 p-3 text-sm font-medium text-green-700">
+          Trabajo gratuito autorizado. Este presupuesto puede
+          aceptarse con un precio final de $0.
+        </p>
+      )}
 
       {!puedeAceptar && (
         <p className="mb-3 text-sm text-yellow-700">
-          Para aceptarlo, primero cargá {faltantes.join(' y ')} (botón &quot;Editar&quot;).
+          Para aceptarlo, primero cargá {faltantes.join(' y ')}
+          {' '}(botón &quot;Editar&quot;).
         </p>
       )}
 
@@ -99,6 +133,7 @@ export default function AccionesPresupuesto({
             >
               Confirmar rechazo
             </button>
+
             <button
               onClick={() => setConfirmandoRechazo(false)}
               disabled={cargando}
@@ -110,7 +145,11 @@ export default function AccionesPresupuesto({
         )}
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

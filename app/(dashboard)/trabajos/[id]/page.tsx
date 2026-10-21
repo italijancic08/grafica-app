@@ -14,6 +14,8 @@ import EditarTrabajo from './editar-trabajo'
 import SeccionComprobantes from './comprobantes'
 import AccionesPresupuesto from './acciones-presupuesto'
 import { listarMesesCerrados } from '@/lib/services/caja-mensual'
+import { createClient } from '@/lib/supabase/server'
+
 
 export default async function DetalleTrabajoPage({
   params,
@@ -25,9 +27,32 @@ export default async function DetalleTrabajoPage({
 
   if (error || !t) notFound()
 
-  const esPresupuesto = t.estado_operativo === 'PRESUPUESTO'
-  const esRechazado = t.estado_operativo === 'RECHAZADO'
-  const esTrabajo = !esPresupuesto && !esRechazado
+
+const esPresupuesto = t.estado_operativo === 'PRESUPUESTO'
+const esRechazado = t.estado_operativo === 'RECHAZADO'
+const esTrabajo = !esPresupuesto && !esRechazado
+
+let permiteTrabajosGratis = false
+
+if (esPresupuesto) {
+  const supabase = await createClient()
+
+  const { data: autorizado, error: errorAutorizacion } =
+    await supabase.rpc('cliente_puede_recibir_gratis', {
+      p_cliente_id: t.cliente_id,
+      p_empresa_id: t.empresa_cliente_id ?? null,
+    })
+
+  if (errorAutorizacion) {
+    console.error(
+      'Error al consultar autorización de trabajos gratuitos:',
+      errorAutorizacion.message
+    )
+  }
+
+  permiteTrabajosGratis = !errorAutorizacion && autorizado === true
+}
+
 
   // La lista de clientes solo hace falta para poder cambiar el cliente de un presupuesto
   const { data: clientes } = esPresupuesto ? await listarClientes() : { data: [] }
@@ -73,7 +98,11 @@ export default async function DetalleTrabajoPage({
         <div className="rounded-lg border border-gray-200 p-4">
           <p className="text-xs text-gray-500">Precio</p>
           <p className="text-lg font-semibold">
-            {t.precio_final > 0 || esTrabajo ? formatearMoneda(t.precio_final) : 'Sin definir'}
+            
+{t.precio_final > 0 || esTrabajo || permiteTrabajosGratis
+  ? formatearMoneda(t.precio_final)
+  : 'Sin definir'}
+
           </p>
         </div>
         {esTrabajo && (
@@ -117,11 +146,14 @@ export default async function DetalleTrabajoPage({
 
       {esPresupuesto && (
         <div className="rounded-lg border border-gray-200 p-4">
-          <AccionesPresupuesto
-            trabajoId={t.id}
-            precioFinal={t.precio_final}
-            tieneRubro={!!t.rubro}
-          />
+          
+<AccionesPresupuesto
+  trabajoId={t.id}
+  precioFinal={t.precio_final}
+  tieneRubro={!!t.rubro}
+  permiteTrabajosGratis={permiteTrabajosGratis}
+/>
+
         </div>
       )}
 
