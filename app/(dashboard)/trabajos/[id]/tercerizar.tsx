@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { crearTercerizacion } from '@/lib/services/tercerizaciones'
 import { ETIQUETAS_ESTADO_TERCERIZACION, type Tercerizacion } from '@/lib/types/tercerizacion'
 import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
+import EditarTercerizacion from '../../tercerizados/editar-tercerizacion'
 
 export default function SeccionTercerizacion({
   trabajoId,
@@ -123,7 +124,10 @@ export default function SeccionTercerizacion({
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Vuelta est.</th>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Vuelta real</th>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Costo</th>
-              <th className="px-3 py-1.5 text-left font-medium text-gray-500">Estado</th>
+              
+<th className="px-3 py-1.5 text-left font-medium text-gray-500">Estado</th>
+<th className="px-3 py-1.5 text-left font-medium text-gray-500">Acciones</th>
+
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
@@ -134,7 +138,14 @@ export default function SeccionTercerizacion({
                 <td className="px-3 py-1.5">{formatearFecha(tc.fecha_estimada_vuelta)}</td>
                 <td className="px-3 py-1.5">{formatearFecha(tc.fecha_real_vuelta)}</td>
                 <td className="px-3 py-1.5">{tc.costo ? formatearMoneda(tc.costo) : '—'}</td>
-                <td className="px-3 py-1.5">{ETIQUETAS_ESTADO_TERCERIZACION[tc.estado]}</td>
+                
+<td className="px-3 py-1.5">
+  {ETIQUETAS_ESTADO_TERCERIZACION[tc.estado]}
+</td>
+<td className="px-3 py-1.5">
+  <EditarTercerizacion tercerizacion={tc} />
+</td>
+
               </tr>
             ))}
           </tbody>

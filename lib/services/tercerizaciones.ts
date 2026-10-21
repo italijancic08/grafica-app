@@ -1,7 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { tercerizacionSchema, type TercerizacionInput } from '@/lib/validations/tercerizacion'
+
+import {
+  tercerizacionSchema,
+  editarTercerizacionSchema,
+  type TercerizacionInput,
+  type EditarTercerizacionInput,
+} from '@/lib/validations/tercerizacion'
+
 import { registrarAuditoria } from '@/lib/services/auditoria'
 import { revalidatePath } from 'next/cache'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
@@ -98,4 +105,79 @@ export async function marcarVuelta(tercerizacionId: string, trabajoId: string) {
   revalidatePath('/tercerizados')
   revalidatePath(`/trabajos/${trabajoId}`)
   return { success: true }
+}
+
+
+export async function editarTercerizacion(
+  tercerizacionId: string,
+  input: EditarTercerizacionInput
+) {
+  const parsed = editarTercerizacionSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Debés iniciar sesión para editar.' }
+  }
+
+  const { data: actual, error: errorConsulta } = await supabase
+    .from('tercerizaciones')
+    .select('*')
+    .eq('id', tercerizacionId)
+    .single()
+
+  if (errorConsulta || !actual) {
+    return { error: 'No se encontró la tercerización.' }
+  }
+
+  if (
+    actual.estado !== 'VUELTO' &&
+    parsed.data.fecha_real_vuelta
+  ) {
+    return {
+      error: 'La fecha real de regreso solo puede indicarse cuando el trabajo volvió.',
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('tercerizaciones')
+    .update(parsed.data)
+    .eq('id', tercerizacionId)
+    .select()
+    .single()
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  await registrarAuditoria({
+    usuarioId: user.id,
+    accion: 'editar',
+    entidad: 'tercerizacion',
+    entidadId: tercerizacionId,
+    detalle: {
+      trabajo_id: actual.trabajo_id,
+      datos_anteriores: {
+        proveedor: actual.proveedor,
+        fecha_envio: actual.fecha_envio,
+        fecha_estimada_vuelta: actual.fecha_estimada_vuelta,
+        fecha_real_vuelta: actual.fecha_real_vuelta,
+        costo: actual.costo,
+      },
+      datos_nuevos: parsed.data,
+    },
+  })
+
+  revalidatePath('/tercerizados')
+  revalidatePath(`/trabajos/${actual.trabajo_id}`)
+
+  return { data }
 }

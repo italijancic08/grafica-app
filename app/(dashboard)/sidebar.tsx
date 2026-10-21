@@ -39,7 +39,7 @@ const NAV_COMPARTIDA = [
   { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
   { nombre: 'Turnos', href: '/turnos', icono: CalendarDays },
   { nombre: 'Para retirar', href: '/para-retirar', icono: PackageCheck },
-  { nombre: 'Pendientes de pago', href: '/deudas', icono: Wallet },
+  { nombre: 'Deudores', href: '/deudas', icono: Wallet },
   { nombre: 'Caja', href: '/caja', icono: Banknote },
   { nombre: 'Fichaje', href: '/fichaje', icono: Clock3 },
   { nombre: 'Stock', href: '/stock', icono: Package },

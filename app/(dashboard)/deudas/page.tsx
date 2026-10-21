@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { listarConDeuda } from '@/lib/services/trabajos'
-import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 
 export default async function DeudasPage() {
@@ -12,8 +11,12 @@ export default async function DeudasPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Pendientes de pago</h1>
-          <p className="text-sm text-gray-500">Trabajos con saldo pendiente, retirados o no.</p>
+
+<h1 className="text-xl font-semibold text-gray-900">Deudores</h1>
+<p className="text-sm text-gray-500">
+  Trabajos retirados con saldo pendiente de pago.
+</p>
+
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-right">
           <p className="text-xs text-red-700">Total adeudado</p>
@@ -48,12 +51,13 @@ export default async function DeudasPage() {
                 </td>
                 <td className="px-4 py-2">{t.clientes?.nombre_razon_social}</td>
                 <td className="px-4 py-2">{t.clientes?.telefono ?? t.clientes?.whatsapp ?? '—'}</td>
-                <td className="px-4 py-2">
-                  {ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}
-                  {t.estado_operativo === 'RETIRADO' && (
-                    <span className="ml-1 text-xs text-orange-600">(retirado con deuda)</span>
-                  )}
-                </td>
+                
+<td className="px-4 py-2">
+  <span className="text-sm font-medium text-orange-600">
+    Retirado con deuda
+  </span>
+</td>
+
                 <td className="px-4 py-2">{formatearMoneda(t.precio_final)}</td>
                 <td className="px-4 py-2 font-medium text-red-600">{formatearMoneda(t.saldo)}</td>
                 <td className="px-4 py-2">{formatearFecha(t.fecha_entrada)}</td>

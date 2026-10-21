@@ -3,6 +3,7 @@ import { listarTercerizaciones } from '@/lib/services/tercerizaciones'
 import { ETIQUETAS_ESTADO_TERCERIZACION, type EstadoTercerizacion } from '@/lib/types/tercerizacion'
 import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
 import BotonMarcarVuelta from './boton-marcar-vuelta'
+import EditarTercerizacion from './editar-tercerizacion'
 
 export default async function TercerizadosPage() {
   const { data: tercerizaciones, error } = await listarTercerizaciones()
@@ -57,11 +58,20 @@ export default async function TercerizadosPage() {
                       {demorado && ' (demorado)'}
                     </span>
                   </td>
-                  <td className="px-4 py-2">
-                    {tc.estado !== 'VUELTO' && (
-                      <BotonMarcarVuelta tercerizacionId={tc.id} trabajoId={tc.trabajo_id} />
-                    )}
-                  </td>
+                  
+<td className="px-4 py-2">
+  <div className="flex flex-wrap items-center gap-2">
+    <EditarTercerizacion tercerizacion={tc} />
+
+    {tc.estado !== 'VUELTO' && (
+      <BotonMarcarVuelta
+        tercerizacionId={tc.id}
+        trabajoId={tc.trabajo_id}
+      />
+    )}
+  </div>
+</td>
+
                 </tr>
               )
             })}

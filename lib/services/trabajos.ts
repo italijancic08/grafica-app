@@ -267,13 +267,14 @@ export async function listarConDeuda() {
   const { data, error } = await supabase
     .from('trabajos_con_saldo')
     .select('*, clientes(nombre_razon_social, telefono, whatsapp)')
+    .eq('estado_operativo', 'RETIRADO')
     .gt('saldo', 0)
-    .not('estado_operativo', 'in', '(CANCELADO,PRESUPUESTO,RECHAZADO)')
     .order('saldo', { ascending: false })
 
   if (error) return { error: error.message }
   return { data }
 }
+
 export async function aceptarPresupuesto(trabajoId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

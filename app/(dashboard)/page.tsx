@@ -48,7 +48,7 @@ const MODULOS: Modulo[] = [
   { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
   { nombre: 'Turnos', href: '/turnos', icono: CalendarDays },
   { nombre: 'Para retirar', href: '/para-retirar', icono: PackageCheck },
-  { nombre: 'Pendientes de pago', href: '/deudas', icono: Wallet },
+  { nombre: 'Deudores', href: '/deudas', icono: Wallet },
   { nombre: 'Caja', href: '/caja', icono: Banknote },
   { nombre: 'Fichaje', href: '/fichaje', icono: Clock3 },
   { nombre: 'Stock', href: '/stock', icono: Boxes },
@@ -229,13 +229,13 @@ export default async function DashboardPage() {
           )}
         </Link>
 
-        {/* Pendientes de pago */}
+        {/* deudores */}
         <Link
           href="/deudas"
           className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
         >
           <p className="text-xs font-medium text-gray-600">
-            Pendientes de pago
+            Deudores
           </p>
 
           <p className="mt-1 text-3xl font-semibold text-gray-900">
