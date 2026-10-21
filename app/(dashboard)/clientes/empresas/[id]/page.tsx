@@ -8,10 +8,8 @@ import {
 import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
 import FormularioEmpresaCliente from '../formulario-empresa-cliente'
-
 import AutorizacionGratuitos from '../../autorizacion-gratuitos'
 import { esAdministrador } from '@/lib/auth/roles'
-
 
 export default async function FichaEmpresaClientePage({
   params,
@@ -23,11 +21,9 @@ export default async function FichaEmpresaClientePage({
 
   if (error || !empresa) notFound()
 
-  
-const { data: clientes } = await listarClientesDeEmpresa(id)
-const { data: trabajos } = await obtenerTrabajosDeEmpresa(id)
-const administrador = await esAdministrador()
-
+  const { data: clientes } = await listarClientesDeEmpresa(id)
+  const { data: trabajos } = await obtenerTrabajosDeEmpresa(id)
+  const administrador = await esAdministrador()
 
   // Los presupuestos (pendientes o rechazados) no cuentan como compra ni como deuda
   const trabajosAceptados = trabajos?.filter(
@@ -49,6 +45,13 @@ const administrador = await esAdministrador()
       <p className="mb-6 text-sm text-gray-500">
         {empresa.telefono ?? 'Sin teléfono'} {empresa.email ? `· ${empresa.email}` : ''}
       </p>
+
+      <AutorizacionGratuitos
+        tipo="empresa"
+        id={empresa.id}
+        permitido={empresa.permite_trabajos_gratis ?? false}
+        administrador={administrador}
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-gray-200 p-4">
