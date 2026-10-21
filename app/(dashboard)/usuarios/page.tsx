@@ -2,7 +2,7 @@ import { listarUsuarios } from '@/lib/services/usuarios'
 import FormularioUsuario from './formulario-usuario'
 import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
-import BotonEliminarUsuario from './boton-eliminar-usuario'
+import FilaUsuario from './fila-usuario'
 
 export default async function UsuariosPage() {
   await redirigirSiNoEsAdministrador()
@@ -34,19 +34,11 @@ export default async function UsuariosPage() {
               <tr><td colSpan={5} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
             {usuarios?.map((u) => (
-              <tr key={u.id}>
-                <td className="px-4 py-2">{u.nombre}</td>
-                <td className="px-4 py-2">{u.email}</td>
-                <td className="px-4 py-2 capitalize">{u.rol}</td>
-                <td className="px-4 py-2">{u.activo ? 'Sí' : 'No'}</td>
-                <td className="px-4 py-2 text-right">
-                  <BotonEliminarUsuario
-                    id={u.id}
-                    nombre={u.nombre}
-                    esPropio={u.id === usuarioActual?.id}
-                  />
-                </td>
-              </tr>
+              <FilaUsuario
+                key={u.id}
+                usuario={u}
+                esPropio={u.id === usuarioActual?.id}
+              />
             ))}
           </tbody>
         </table>
