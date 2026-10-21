@@ -78,3 +78,75 @@ export async function listarUsuarios() {
   if (error) return { error: error.message }
   return { data }
 }
+
+export async function eliminarUsuario(usuarioId: string) {
+  // 1. Verificar que quien llama es un administrador
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'No autenticado' }
+  }
+
+  const { data: solicitante } = await supabase
+    .from('usuarios')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+
+  if (solicitante?.rol !== 'administrador') {
+    return { error: 'Solo un administrador puede eliminar usuarios' }
+  }
+
+  // 2. No permitir que se elimine a sí mismo
+  if (usuarioId === user.id) {
+    return { error: 'No puedes eliminar tu propio usuario' }
+  }
+
+  const admin = createAdminClient()
+
+  // 3. Buscar el usuario a eliminar
+  const { data: objetivo } = await admin
+    .from('usuarios')
+    .select('nombre, email, rol')
+    .eq('id', usuarioId)
+    .single()
+
+  if (!objetivo) {
+    return { error: 'El usuario no existe' }
+  }
+
+  // 4. No dejar el sistema sin administradores
+  if (objetivo.rol === 'administrador') {
+    const { count } = await admin
+      .from('usuarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('rol', 'administrador')
+
+    if ((count ?? 0) <= 1) {
+      return { error: 'No se puede eliminar al único administrador' }
+    }
+  }
+
+  // 5. Eliminar de Supabase Auth (la fila de "usuarios" se borra en cascada)
+  const { error: errorAuth } = await admin.auth.admin.deleteUser(usuarioId)
+
+  if (errorAuth) {
+    console.error('[Eliminar usuario]', errorAuth.message)
+    return {
+      error:
+        'No se pudo eliminar. Si el usuario ya tiene trabajos, pagos, movimientos o liquidaciones registrados, no puede borrarse para no perder el historial.',
+    }
+  }
+
+  // 6. Auditoría
+  await admin.from('auditoria').insert({
+    usuario_id: user.id,
+    accion: 'eliminar',
+    entidad: 'usuario',
+    entidad_id: usuarioId,
+    detalle: { nombre: objetivo.nombre, email: objetivo.email, rol: objetivo.rol },
+  })
+
+  return { success: true }
+}

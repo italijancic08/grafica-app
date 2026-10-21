@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -122,6 +123,14 @@ export default function Sidebar({
         <Menu size={22} strokeWidth={1.75} />
       </button>
 
+      <Image
+        src="/logo.png"
+        alt="Logo del negocio"
+        width={32}
+        height={32}
+        className="h-8 w-auto shrink-0 object-contain"
+      />
+
       <div className="min-w-0 leading-tight">
         <p className="truncate text-sm font-medium text-white">{nombre}</p>
         <p className="text-xs capitalize text-zinc-400">{rol}</p>
@@ -151,6 +160,15 @@ export default function Sidebar({
         <X size={20} strokeWidth={1.75} />
       </button>
       <div className="mb-5 flex shrink-0 flex-col items-center text-center">
+        <Image
+          src="/logo.png"
+          alt="Logo del negocio"
+          width={120}
+          height={120}
+          priority
+          className="mb-3 h-16 w-auto object-contain"
+        />
+
         <p className="text-sm font-medium text-white">{nombre}</p>
 
         <p className="text-xs capitalize text-zinc-400">{rol}</p>
