@@ -19,6 +19,7 @@ export default function SeccionTercerizacion({
   const [proveedor, setProveedor] = useState('')
   const [fechaEstimada, setFechaEstimada] = useState('')
   const [costo, setCosto] = useState('')
+  const [codigo, setCodigo] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
@@ -33,6 +34,7 @@ export default function SeccionTercerizacion({
         proveedor,
         fecha_estimada_vuelta: fechaEstimada,
         costo: costo ? Number(costo) : undefined,
+        codigo_seguimiento: codigo || undefined,
       })
 
       if (resultado.error) {
@@ -43,6 +45,7 @@ export default function SeccionTercerizacion({
       setProveedor('')
       setFechaEstimada('')
       setCosto('')
+      setCodigo('')
       setAbierto(false)
       router.refresh()
     } catch (err) {
@@ -88,6 +91,15 @@ export default function SeccionTercerizacion({
             />
           </div>
           <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Código de seguimiento</label>
+            <input
+              maxLength={100}
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+          <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">Costo</label>
             <input
               type="number"
@@ -120,6 +132,7 @@ export default function SeccionTercerizacion({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Proveedor</th>
+              <th className="px-3 py-1.5 text-left font-medium text-gray-500">Código</th>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Envío</th>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Vuelta est.</th>
               <th className="px-3 py-1.5 text-left font-medium text-gray-500">Vuelta real</th>
@@ -134,6 +147,7 @@ export default function SeccionTercerizacion({
             {tercerizaciones.map((tc) => (
               <tr key={tc.id}>
                 <td className="px-3 py-1.5">{tc.proveedor}</td>
+                <td className="px-3 py-1.5 font-mono text-xs">{tc.codigo_seguimiento || '—'}</td>
                 <td className="px-3 py-1.5">{formatearFecha(tc.fecha_envio)}</td>
                 <td className="px-3 py-1.5">{formatearFecha(tc.fecha_estimada_vuelta)}</td>
                 <td className="px-3 py-1.5">{formatearFecha(tc.fecha_real_vuelta)}</td>

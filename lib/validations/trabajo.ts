@@ -8,6 +8,8 @@ export const RUBROS_TRABAJO = [
   'termotransferible_corte', 'venta_lamina', 'venta_materiales', 'vinilo_aerosol',
 ] as const
 
+export const TIPOS_DESCUENTO = ['PORCENTAJE', 'MONTO'] as const
+
 // Alta: todo trabajo nace como PRESUPUESTO. El rubro y el precio son
 // opcionales en esta fase; se exigen recién al aceptarlo.
 export const trabajoSchema = z.object({
@@ -16,7 +18,10 @@ export const trabajoSchema = z.object({
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),
-  precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo').optional(),
+  // Precio ANTES del descuento. El precio final se calcula en el servicio.
+  precio_base: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo').optional(),
+  descuento_tipo: z.enum(TIPOS_DESCUENTO, { error: 'Tipo de descuento inválido' }).optional(),
+  descuento_valor: z.coerce.number({ error: 'Ingresá un descuento válido' }).min(0, 'El descuento no puede ser negativo').optional(),
   ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
   largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
   requiere_turno: z.boolean().optional().default(false),
@@ -35,7 +40,10 @@ export const trabajoEditSchema = z.object({
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
   fecha_maxima: z.string().optional(),
-  precio_final: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
+  // Precio ANTES del descuento. El precio final se calcula en el servicio.
+  precio_base: z.coerce.number({ error: 'Ingresá un número válido' }).min(0, 'El precio no puede ser negativo'),
+  descuento_tipo: z.enum(TIPOS_DESCUENTO, { error: 'Tipo de descuento inválido' }).optional(),
+  descuento_valor: z.coerce.number({ error: 'Ingresá un descuento válido' }).min(0, 'El descuento no puede ser negativo').optional(),
   ancho_cm: z.coerce.number().min(0, 'El ancho no puede ser negativo').optional(),
   largo_cm: z.coerce.number().min(0, 'El largo no puede ser negativo').optional(),
 })

@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { actualizarTrabajo } from '@/lib/services/trabajos'
 import type { Cliente } from '@/lib/types/cliente'
-import { ETIQUETAS_RUBRO_TRABAJO, type EstadoOperativo, type RubroTrabajo } from '@/lib/types/trabajo'
+import { ETIQUETAS_RUBRO_TRABAJO, type EstadoOperativo, type RubroTrabajo, type TipoDescuento } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
 import SelectorCliente from '../../clientes/selector-cliente'
 import SelectorEmpresa from '../../clientes/selector-empresa'
+import CamposDescuento from '../campos-descuento'
 import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
 
 export default function EditarTrabajo({
@@ -21,6 +22,9 @@ export default function EditarTrabajo({
   rubro,
   fechaMaxima,
   precioFinal,
+  precioBase,
+  descuentoTipo,
+  descuentoValor,
   anchoCm,
   largoCm,
 }: {
@@ -34,12 +38,19 @@ export default function EditarTrabajo({
   rubro: RubroTrabajo | null
   fechaMaxima: string | null
   precioFinal: number
+  precioBase: number
+  descuentoTipo: TipoDescuento | null
+  descuentoValor: number
   anchoCm: number | null
   largoCm: number | null
 }) {
   const router = useRouter()
   const esPresupuesto = estado === 'PRESUPUESTO'
   const puedeEditar = estado !== 'RECHAZADO'
+
+  const textoDescuento = descuentoTipo
+    ? `${descuentoTipo === 'PORCENTAJE' ? `${descuentoValor}%` : formatearMoneda(descuentoValor)} de descuento sobre ${formatearMoneda(precioBase)}`
+    : null
 
   const [editando, setEditando] = useState(false)
 
@@ -48,7 +59,10 @@ export default function EditarTrabajo({
   const [descripcionForm, setDescripcionForm] = useState(descripcion)
   const [rubroForm, setRubroForm] = useState<RubroTrabajo | ''>(rubro ?? '')
   const [fechaMaximaForm, setFechaMaximaForm] = useState(fechaMaxima ?? '')
-  const [precioFinalForm, setPrecioFinalForm] = useState(precioFinal > 0 ? String(precioFinal) : '')
+  // precioFinalForm guarda el precio ANTES del descuento
+  const [precioFinalForm, setPrecioFinalForm] = useState(precioBase > 0 ? String(precioBase) : '')
+  const [descuentoTipoForm, setDescuentoTipoForm] = useState<TipoDescuento | ''>(descuentoTipo ?? '')
+  const [descuentoValorForm, setDescuentoValorForm] = useState(descuentoValor > 0 ? String(descuentoValor) : '')
   const [anchoForm, setAnchoForm] = useState(anchoCm ? String(anchoCm) : '')
   const [largoForm, setLargoForm] = useState(largoCm ? String(largoCm) : '')
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +78,9 @@ export default function EditarTrabajo({
     setDescripcionForm(descripcion)
     setRubroForm(rubro ?? '')
     setFechaMaximaForm(fechaMaxima ?? '')
-    setPrecioFinalForm(precioFinal > 0 ? String(precioFinal) : '')
+    setPrecioFinalForm(precioBase > 0 ? String(precioBase) : '')
+    setDescuentoTipoForm(descuentoTipo ?? '')
+    setDescuentoValorForm(descuentoValor > 0 ? String(descuentoValor) : '')
     setAnchoForm(anchoCm ? String(anchoCm) : '')
     setLargoForm(largoCm ? String(largoCm) : '')
     setError(null)
@@ -89,7 +105,9 @@ export default function EditarTrabajo({
         descripcion: descripcionForm,
         rubro: rubroForm || undefined,
         fecha_maxima: fechaMaximaForm,
-        precio_final: Number(precioFinalForm || 0),
+        precio_base: Number(precioFinalForm || 0),
+        descuento_tipo: descuentoTipoForm || undefined,
+        descuento_valor: descuentoValorForm ? Number(descuentoValorForm) : undefined,
         ancho_cm: anchoForm ? Number(anchoForm) : undefined,
         largo_cm: largoForm ? Number(largoForm) : undefined,
       })
@@ -131,6 +149,7 @@ export default function EditarTrabajo({
               onChange={setEmpresaForm}
               etiquetaVacia="El cliente (a su nombre)"
               destacadaId={clientes.find((c) => c.id === clienteForm)?.empresa_cliente_id ?? undefined}
+              permitirCrear
               className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm sm:w-80"
             />
           </div>
@@ -173,7 +192,7 @@ export default function EditarTrabajo({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">
-                {esPresupuesto ? 'Precio' : 'Precio final'}
+                Precio
               </label>
               <input
                 type="number"
@@ -209,6 +228,15 @@ export default function EditarTrabajo({
             </div>
             {m2 !== null && <p className="pb-2 text-sm text-gray-500">= {m2.toFixed(2)} m²</p>}
           </div>
+
+          <CamposDescuento
+            compacto
+            precioBase={precioFinalForm}
+            tipo={descuentoTipoForm}
+            valor={descuentoValorForm}
+            onTipoChange={setDescuentoTipoForm}
+            onValorChange={setDescuentoValorForm}
+          />
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -256,6 +284,7 @@ export default function EditarTrabajo({
       <p className="mt-2 text-xs text-gray-400">
         {esPresupuesto ? 'Precio' : 'Precio final'}:{' '}
         {precioFinal > 0 ? formatearMoneda(precioFinal) : 'Sin definir'}
+        {textoDescuento ? ` (${textoDescuento})` : ''}
         {anchoCm && largoCm ? ` · Medidas: ${anchoCm} × ${largoCm} cm` : ''}
         {empresaClienteId
           ? ` · Por parte de: ${empresas.find((e) => e.id === empresaClienteId)?.nombre ?? ''}`

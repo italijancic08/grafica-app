@@ -8,6 +8,7 @@ export interface Tercerizacion {
   fecha_estimada_vuelta: string | null
   fecha_real_vuelta: string | null
   costo: number | null
+  codigo_seguimiento: string | null
   estado: EstadoTercerizacion
   creado_en: string
 }

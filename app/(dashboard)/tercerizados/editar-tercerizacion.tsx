@@ -31,6 +31,7 @@ export default function EditarTercerizacion({
       ? ''
       : String(tercerizacion.costo)
   )
+  const [codigo, setCodigo] = useState(tercerizacion.codigo_seguimiento ?? '')
 
   function cerrar() {
     setAbierto(false)
@@ -52,6 +53,7 @@ export default function EditarTercerizacion({
             ? fechaReal || null
             : null,
         costo: costo.trim() === '' ? null : Number(costo),
+        codigo_seguimiento: codigo.trim() === '' ? null : codigo.trim(),
       })
 
       if (resultado.error) {
@@ -153,6 +155,19 @@ export default function EditarTercerizacion({
                   />
                 </div>
               )}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Código de seguimiento{' '}
+                  <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                <input
+                  maxLength={100}
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">

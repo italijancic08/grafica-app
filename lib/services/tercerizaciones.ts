@@ -50,6 +50,7 @@ export async function crearTercerizacion(input: TercerizacionInput) {
     .insert({
       ...parsed.data,
       fecha_estimada_vuelta: parsed.data.fecha_estimada_vuelta || null,
+      codigo_seguimiento: parsed.data.codigo_seguimiento || null,
     })
     .select()
     .single()
@@ -67,7 +68,11 @@ export async function crearTercerizacion(input: TercerizacionInput) {
     accion: 'crear',
     entidad: 'tercerizacion',
     entidadId: data.id,
-    detalle: { trabajo_id: parsed.data.trabajo_id, proveedor: parsed.data.proveedor },
+    detalle: {
+      trabajo_id: parsed.data.trabajo_id,
+      proveedor: parsed.data.proveedor,
+      codigo_seguimiento: parsed.data.codigo_seguimiento || null,
+    },
   })
 
   revalidatePath('/tercerizados')
@@ -171,6 +176,7 @@ export async function editarTercerizacion(
         fecha_estimada_vuelta: actual.fecha_estimada_vuelta,
         fecha_real_vuelta: actual.fecha_real_vuelta,
         costo: actual.costo,
+        codigo_seguimiento: actual.codigo_seguimiento,
       },
       datos_nuevos: parsed.data,
     },

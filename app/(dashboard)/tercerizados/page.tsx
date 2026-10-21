@@ -20,6 +20,7 @@ export default async function TercerizadosPage() {
               <th className="px-4 py-2 text-left font-medium text-gray-500">Trabajo</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Proveedor</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Código</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Envío</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Vuelta estimada</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Costo</th>
@@ -29,10 +30,10 @@ export default async function TercerizadosPage() {
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
-              <tr><td colSpan={8} className="px-4 py-3 text-red-600">{error}</td></tr>
+              <tr><td colSpan={9} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
             {tercerizaciones?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-3 text-gray-500">Sin tercerizaciones registradas.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-3 text-gray-500">Sin tercerizaciones registradas.</td></tr>
             )}
             {tercerizaciones?.map((tc) => {
               const demorado =
@@ -49,6 +50,7 @@ export default async function TercerizadosPage() {
                   </td>
                   <td className="px-4 py-2">{tc.trabajos?.clientes?.nombre_razon_social}</td>
                   <td className="px-4 py-2">{tc.proveedor}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{tc.codigo_seguimiento || '—'}</td>
                   <td className="px-4 py-2">{formatearFecha(tc.fecha_envio)}</td>
                   <td className="px-4 py-2">{formatearFecha(tc.fecha_estimada_vuelta)}</td>
                   <td className="px-4 py-2">{tc.costo ? formatearMoneda(tc.costo) : '—'}</td>

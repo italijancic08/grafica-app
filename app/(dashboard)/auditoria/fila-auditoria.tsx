@@ -10,7 +10,7 @@ import { formatearFechaHora, formatearMoneda } from '@/lib/utils/formato'
 type RegistroConUsuario = Auditoria & { usuarios: { nombre: string } | { nombre: string }[] | null }
 
 const CLAVES_MONEDA = new Set([
-  'monto', 'importe', 'precio_final', 'saldo', 'costo', 'valor', 'total_pagado', 'total_adeudado',
+  'monto', 'importe', 'precio_final', 'precio_base', 'descuento', 'saldo', 'costo', 'valor', 'total_pagado', 'total_adeudado',
 ])
 
 function formatearClave(clave: string): string {

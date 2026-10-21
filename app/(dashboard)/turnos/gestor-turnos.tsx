@@ -12,6 +12,7 @@ import {
   type EstadoOperativo,
 } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
+import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 
 type Instalador = {
   id: string
@@ -42,15 +43,7 @@ type Turno = {
   }
 }
 
-const ESTADOS_TURNO: EstadoOperativo[] = [
-  'INGRESADO',
-  'EN_PRODUCCION',
-  'TERCERIZADO',
-  'TERMINADO',
-  'PARA_RETIRAR',
-  'RETIRADO',
-  'CANCELADO',
-]
+const ESTADOS_TURNO: EstadoOperativo[] = ESTADOS_DE_TRABAJO
 
 export default function GestorTurnos({
   turnos,
@@ -208,12 +201,26 @@ export default function GestorTurnos({
               >
                 {/* Cliente y trabajo */}
                 <div className="min-w-0">
-                  <Link
-                    href={`/trabajos/${turno.trabajos.id}`}
-                    className="text-sm font-semibold text-gray-900 hover:underline"
-                  >
-                    {turno.trabajos.numero}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/trabajos/${turno.trabajos.id}`}
+                      className="text-sm font-semibold text-gray-900 hover:underline"
+                    >
+                      {turno.trabajos.numero}
+                    </Link>
+
+                    {turno.trabajos.estado_operativo === 'A_COORDINAR' && (
+                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+                        A coordinar
+                      </span>
+                    )}
+
+                    {turno.trabajos.estado_operativo === 'TURNO_AGENDADO' && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        Turno agendado
+                      </span>
+                    )}
+                  </div>
 
                   <p className="mt-1 text-sm text-gray-700">
                     {turno.trabajos.clientes?.nombre_razon_social ??

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { registrarPago } from '@/lib/services/pagos'
+import { registrarPago, adjuntarComprobantePago } from '@/lib/services/pagos'
+import { subirComprobantePago } from '@/lib/utils/subir-comprobante-pago'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta, type Pago } from '@/lib/types/pago'
 import FilaPago from './fila-pago'
 
@@ -27,6 +28,12 @@ export default function SeccionPagos({
   const [observacion, setObservacion] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [archivo, setArchivo] = useState<File | null>(null)
+  const [claveArchivo, setClaveArchivo] = useState(0)
+
+  const cantidadSinComprobante = pagos.filter(
+    (p) => p.medio_pago === 'transferencia' && !p.comprobante_url && !p.comprobante_exento
+  ).length
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,9 +60,27 @@ export default function SeccionPagos({
         return
       }
 
+      // El comprobante es opcional: si falla la subida, el pago ya quedó
+      // registrado y se puede adjuntar después desde la lista de pagos.
+      let avisoComprobante: string | null = null
+      if (medioPago === 'transferencia' && archivo && resultado.data) {
+        const subida = await subirComprobantePago(trabajoId, resultado.data.id, archivo)
+        if (subida.error || !subida.ruta) {
+          avisoComprobante = subida.error ?? 'No se pudo subir el archivo.'
+        } else {
+          const adjuntado = await adjuntarComprobantePago(resultado.data.id, subida.ruta)
+          if (adjuntado.error) avisoComprobante = adjuntado.error
+        }
+      }
+
       setImporte('')
       setObservacion('')
       setOtroDetalle('')
+      setArchivo(null)
+      setClaveArchivo((n) => n + 1)
+      if (avisoComprobante) {
+        setError(`El pago se registró, pero no se pudo adjuntar el comprobante: ${avisoComprobante} Podés adjuntarlo desde la lista de pagos.`)
+      }
       router.refresh()
     } catch (err) {
       console.error(err)
@@ -68,6 +93,15 @@ export default function SeccionPagos({
   return (
     <div className="rounded-lg border border-gray-200 p-4">
       <h2 className="mb-3 text-sm font-semibold text-gray-900">Pagos</h2>
+
+      {cantidadSinComprobante > 0 && (
+        <p className="mb-3 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
+          ⚠️ {cantidadSinComprobante === 1
+            ? 'Hay 1 transferencia sin comprobante cargado.'
+            : `Hay ${cantidadSinComprobante} transferencias sin comprobante cargado.`}{' '}
+          Podés adjuntarlo desde la lista de pagos.
+        </p>
+      )}
 
       {saldo > 0 ? (
         <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-3">
@@ -134,6 +168,21 @@ export default function SeccionPagos({
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
             />
           </div>
+
+          {medioPago === 'transferencia' && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">
+                Comprobante <span className="font-normal text-gray-400">(opcional)</span>
+              </label>
+              <input
+                key={claveArchivo}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+                className="block w-56 text-xs text-gray-600 file:mr-2 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:font-medium file:text-gray-700"
+              />
+            </div>
+          )}
 
           <button
             type="submit"

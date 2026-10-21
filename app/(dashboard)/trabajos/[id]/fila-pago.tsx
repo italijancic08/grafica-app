@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { actualizarPago } from '@/lib/services/pagos'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta, type Pago } from '@/lib/types/pago'
 import { formatearMoneda } from '@/lib/utils/formato'
+import ComprobantePago from './comprobante-pago'
 
 export default function FilaPago({
   pago,
@@ -165,6 +166,7 @@ export default function FilaPago({
         {ETIQUETAS_MEDIO_PAGO[pago.medio_pago]}
         {pago.detalle_medio_pago && pago.medio_pago === 'tarjeta' && ` (${ETIQUETAS_TIPO_TARJETA[pago.detalle_medio_pago as TipoTarjeta]})`}
         {pago.detalle_medio_pago && pago.medio_pago === 'otro' && ` (${pago.detalle_medio_pago})`}
+        {pago.medio_pago === 'transferencia' && <ComprobantePago pago={pago} />}
       </td>
       <td className="px-3 py-1.5 text-gray-500">
         <div className="flex items-center justify-between gap-2">

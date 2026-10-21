@@ -149,3 +149,43 @@ export async function actualizarPago(pagoId: string, input: PagoEditInput) {
   revalidatePath('/caja')
   return { success: true }
 }
+
+// Guarda en el pago la ruta del comprobante que el navegador ya subió al
+// bucket "comprobantes" (carpeta pagos/<trabajo_id>/). No modifica importes,
+// por eso se puede usar aunque el mes de caja esté cerrado.
+export async function adjuntarComprobantePago(pagoId: string, ruta: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Debés iniciar sesión.' }
+
+  const { data: pago } = await supabase
+    .from('pagos')
+    .select('trabajo_id')
+    .eq('id', pagoId)
+    .single()
+
+  if (!pago) return { error: 'No se encontró el pago' }
+
+  if (!ruta.startsWith(`pagos/${pago.trabajo_id}/`)) {
+    return { error: 'Ruta de comprobante inválida.' }
+  }
+
+  const { error } = await supabase
+    .from('pagos')
+    .update({ comprobante_url: ruta })
+    .eq('id', pagoId)
+
+  if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user.id,
+    accion: 'adjuntar_comprobante_pago',
+    entidad: 'pago',
+    entidadId: pagoId,
+    detalle: { trabajo_id: pago.trabajo_id },
+  })
+
+  revalidatePath(`/trabajos/${pago.trabajo_id}`)
+  revalidatePath('/alertas')
+  return { success: true }
+}

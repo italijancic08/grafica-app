@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { crearTrabajo, listarInstaladoresActivos } from '@/lib/services/trabajos'
 import type { Cliente } from '@/lib/types/cliente'
-import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
+import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo, type TipoDescuento } from '@/lib/types/trabajo'
 import SelectorCliente from '../../clientes/selector-cliente'
 import SelectorEmpresa from '../../clientes/selector-empresa'
+import CamposDescuento from '../campos-descuento'
 import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
 
 type Instalador = { id: string; nombre: string }
@@ -24,7 +25,9 @@ export default function FormularioTrabajo({
   const [descripcion, setDescripcion] = useState('')
   const [rubro, setRubro] = useState<RubroTrabajo | ''>('')
   const [fechaMaxima, setFechaMaxima] = useState('')
-  const [precioFinal, setPrecioFinal] = useState('')
+  const [precioFinal, setPrecioFinal] = useState('') // precio antes del descuento
+  const [descuentoTipo, setDescuentoTipo] = useState<TipoDescuento | ''>('')
+  const [descuentoValor, setDescuentoValor] = useState('')
   const [anchoCm, setAnchoCm] = useState('')
   const [largoCm, setLargoCm] = useState('')
   const [requiereTurno, setRequiereTurno] = useState(false)
@@ -67,7 +70,9 @@ export default function FormularioTrabajo({
         descripcion,
         rubro: rubro || undefined,
         fecha_maxima: fechaMaxima,
-        precio_final: precioFinal.trim() === '' ? undefined : Number(precioFinal),
+        precio_base: precioFinal.trim() === '' ? undefined : Number(precioFinal),
+        descuento_tipo: descuentoTipo || undefined,
+        descuento_valor: descuentoValor ? Number(descuentoValor) : undefined,
         ancho_cm: anchoCm ? Number(anchoCm) : undefined,
         largo_cm: largoCm ? Number(largoCm) : undefined,
         requiere_turno: requiereTurno,
@@ -102,6 +107,7 @@ export default function FormularioTrabajo({
           onChange={setEmpresaId}
           etiquetaVacia="El cliente (a su nombre)"
           destacadaId={empresaDelCliente}
+          permitirCrear
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
         />
       </div>
@@ -129,6 +135,14 @@ export default function FormularioTrabajo({
           <input type="number" step="0.01" min="0" value={precioFinal} onChange={(e) => setPrecioFinal(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
         </div>
       </div>
+
+      <CamposDescuento
+        precioBase={precioFinal}
+        tipo={descuentoTipo}
+        valor={descuentoValor}
+        onTipoChange={setDescuentoTipo}
+        onValorChange={setDescuentoValor}
+      />
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Medidas (opcional)</label>

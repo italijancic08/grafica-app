@@ -12,6 +12,8 @@ export interface Pago {
   detalle_medio_pago: string | null
   usuario_id: string | null
   observacion: string | null
+  comprobante_url: string | null
+  comprobante_exento: boolean
   creado_en: string
 }
 

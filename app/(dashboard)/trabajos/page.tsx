@@ -13,9 +13,28 @@ function badgeFinanciero(estado: string) {
   return colores[estado] ?? 'bg-gray-100 text-gray-700'
 }
 
-export default async function TrabajosPage() {
+export default async function TrabajosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>
+}) {
+  const { estado } = await searchParams
+  // Si el parámetro no es un estado válido, se muestran todos
+  const estadoFiltro = ESTADOS_DE_TRABAJO.find((e) => e === estado) ?? null
+
   // Los presupuestos y rechazados se ven en /presupuestos
-  const { data: trabajos, error } = await listarTrabajos(ESTADOS_DE_TRABAJO)
+  const { data: todos, error } = await listarTrabajos(ESTADOS_DE_TRABAJO)
+  const trabajos = estadoFiltro
+    ? todos?.filter((t) => t.estado_operativo === estadoFiltro)
+    : todos
+
+  const cantidad = (e: string) =>
+    todos?.filter((t) => t.estado_operativo === e).length ?? 0
+
+  const pastilla = (activo: boolean) =>
+    `rounded-md px-3 py-1.5 text-sm font-medium ${
+      activo ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+    }`
 
   return (
     <div className="p-6">
@@ -27,6 +46,17 @@ export default async function TrabajosPage() {
         >
           + Nuevo presupuesto
         </Link>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/trabajos" className={pastilla(!estadoFiltro)}>
+          Todos ({todos?.length ?? 0})
+        </Link>
+        {ESTADOS_DE_TRABAJO.map((e) => (
+          <Link key={e} href={`/trabajos?estado=${e}`} className={pastilla(estadoFiltro === e)}>
+            {ETIQUETAS_ESTADO_OPERATIVO[e]} ({cantidad(e)})
+          </Link>
+        ))}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -48,7 +78,7 @@ export default async function TrabajosPage() {
               <tr><td colSpan={8} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
             {trabajos?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-3 text-gray-500">Sin trabajos todavía.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-3 text-gray-500">{estadoFiltro ? 'No hay trabajos en este estado.' : 'Sin trabajos todavía.'}</td></tr>
             )}
             {trabajos?.map((t) => (
               <tr key={t.id} className="hover:bg-gray-50">

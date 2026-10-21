@@ -5,6 +5,8 @@ import { trabajoSchema, trabajoEditSchema, type TrabajoInput, type TrabajoEditIn
 import { revalidatePath } from 'next/cache'
 import type { EstadoOperativo } from '@/lib/types/trabajo'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
+import { calcularPrecioConDescuento } from '@/lib/utils/descuento'
+import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 import { generarComprobante } from '@/lib/services/facturas'
 
 export async function listarTrabajos(estados?: EstadoOperativo[]) {
@@ -45,6 +47,16 @@ export async function crearTrabajo(input: TrabajoInput) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // El descuento se aplica sobre el precio cargado. precio_final es lo que
+  // efectivamente paga el cliente (por eso saldo, pagos y reportes no cambian).
+  const calculo = calcularPrecioConDescuento(
+    parsed.data.precio_base ?? 0,
+    parsed.data.descuento_tipo,
+    parsed.data.descuento_valor
+  )
+  if (calculo.error) return { error: calculo.error }
+  const conDescuento = calculo.descuento > 0
+
   // Todo trabajo nace como presupuesto. precio_final = 0 significa "sin definir".
   const { data, error } = await supabase
     .from('trabajos')
@@ -53,7 +65,10 @@ export async function crearTrabajo(input: TrabajoInput) {
       empresa_cliente_id: parsed.data.empresa_cliente_id || null,
       descripcion: parsed.data.descripcion,
       rubro: parsed.data.rubro ?? null,
-      precio_final: parsed.data.precio_final ?? 0,
+      precio_final: calculo.precioFinal,
+      precio_base: conDescuento ? parsed.data.precio_base : null,
+      descuento_tipo: conDescuento ? parsed.data.descuento_tipo : null,
+      descuento_valor: conDescuento ? parsed.data.descuento_valor : 0,
       ancho_cm: parsed.data.ancho_cm ?? null,
       largo_cm: parsed.data.largo_cm ?? null,
       fecha_maxima: parsed.data.fecha_maxima || null,
@@ -84,7 +99,12 @@ export async function crearTrabajo(input: TrabajoInput) {
     accion: 'crear',
     entidad: 'trabajo',
     entidad_id: data.id,
-    detalle: { numero: data.numero, estado: 'PRESUPUESTO', precio_final: data.precio_final },
+    detalle: {
+      numero: data.numero,
+      estado: 'PRESUPUESTO',
+      precio_final: data.precio_final,
+      ...(conDescuento ? { precio_base: parsed.data.precio_base, descuento: calculo.descuento } : {}),
+    },
   })
 
   revalidatePath('/presupuestos')
@@ -104,11 +124,20 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
 
   const { data: trabajoAnterior } = await supabase
     .from('trabajos')
-    .select('estado_operativo, cliente_id, empresa_cliente_id, descripcion, rubro, fecha_maxima, precio_final, ancho_cm, largo_cm')
+    .select('estado_operativo, cliente_id, empresa_cliente_id, descripcion, rubro, fecha_maxima, precio_final, precio_base, descuento_tipo, descuento_valor, ancho_cm, largo_cm')
     .eq('id', trabajoId)
     .single()
 
   if (!trabajoAnterior) return { error: 'No se encontró el trabajo' }
+
+  // precio_base llega SIN descuento; precio_final es lo que paga el cliente.
+  const calculo = calcularPrecioConDescuento(
+    parsed.data.precio_base,
+    parsed.data.descuento_tipo,
+    parsed.data.descuento_valor
+  )
+  if (calculo.error) return { error: calculo.error }
+  const conDescuento = calculo.descuento > 0
 
   if (trabajoAnterior.estado_operativo === 'RECHAZADO') {
     return { error: 'Un presupuesto rechazado no se puede modificar.' }
@@ -118,7 +147,7 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
 
   // Un precio cero solo está permitido para clientes o empresas autorizados.
   // La base de datos verifica el permiso también en el momento de guardar.
-  if (!esPresupuesto && Number(parsed.data.precio_final) === 0) {
+  if (!esPresupuesto && calculo.precioFinal === 0) {
     const empresaId = parsed.data.empresa_cliente_id !== undefined
       ? parsed.data.empresa_cliente_id || null
       : trabajoAnterior.empresa_cliente_id
@@ -148,9 +177,9 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
       .eq('id', trabajoId)
       .single()
 
-    if (conSaldo && parsed.data.precio_final < conSaldo.total_pagado) {
+    if (conSaldo && calculo.precioFinal < conSaldo.total_pagado) {
       return {
-        error: `El precio final ($${parsed.data.precio_final}) no puede ser menor a lo ya pagado ($${conSaldo.total_pagado}) en el trabajo ${conSaldo.numero}.`,
+        error: `El precio final ($${calculo.precioFinal}) no puede ser menor a lo ya pagado ($${conSaldo.total_pagado}) en el trabajo ${conSaldo.numero}.`,
       }
     }
   }
@@ -167,7 +196,10 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
       descripcion: parsed.data.descripcion,
       rubro: parsed.data.rubro ?? null,
       fecha_maxima: parsed.data.fecha_maxima || null,
-      precio_final: parsed.data.precio_final,
+      precio_final: calculo.precioFinal,
+      precio_base: conDescuento ? parsed.data.precio_base : null,
+      descuento_tipo: conDescuento ? parsed.data.descuento_tipo : null,
+      descuento_valor: conDescuento ? parsed.data.descuento_valor : 0,
       ancho_cm: parsed.data.ancho_cm ?? null,
       largo_cm: parsed.data.largo_cm ?? null,
       modificado_en: new Date().toISOString(),
@@ -181,7 +213,7 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
     accion: 'editar',
     entidad: 'trabajo',
     entidad_id: trabajoId,
-    detalle: { antes: trabajoAnterior, despues: parsed.data },
+    detalle: { antes: trabajoAnterior, despues: { ...parsed.data, precio_final: calculo.precioFinal } },
   })
 
   revalidatePath('/presupuestos')
@@ -200,12 +232,20 @@ export async function cambiarEstadoTrabajo(
 
   const { data: trabajoActual, error: errorActual } = await supabase
     .from('trabajos')
-    .select('estado_operativo')
+    .select('estado_operativo, requiere_turno')
     .eq('id', trabajoId)
     .single()
 
   if (errorActual || !trabajoActual) {
     return { error: 'No se encontró el trabajo' }
+  }
+
+  // "A coordinar" y "Turno agendado" solo tienen sentido en trabajos con turno
+  if (
+    (nuevoEstado === 'A_COORDINAR' || nuevoEstado === 'TURNO_AGENDADO') &&
+    !trabajoActual.requiere_turno
+  ) {
+    return { error: 'Este estado solo se puede usar en trabajos con turno.' }
   }
 
   // Un presupuesto solo avanza aceptándolo (aceptarPresupuesto);
@@ -450,17 +490,7 @@ export async function actualizarTurno(input: {
   instalador_id: string
   estado: string
 }) {
-  const estadosPermitidos: EstadoOperativo[] = [
-    'INGRESADO',
-    'EN_PRODUCCION',
-    'TERCERIZADO',
-    'TERMINADO',
-    'PARA_RETIRAR',
-    'RETIRADO',
-    'CANCELADO',
-  ]
-
-  if (!estadosPermitidos.includes(input.estado as EstadoOperativo)) {
+  if (!ESTADOS_DE_TRABAJO.includes(input.estado as EstadoOperativo)) {
     return { error: 'Estado de trabajo inválido.' }
   }
 
@@ -493,9 +523,18 @@ export async function actualizarTurno(input: {
 
   // El estado se modifica en el trabajo asociado.
   // Turnos mostrará ese mismo estado.
+  // Con día y hora cargados, "A coordinar" pasa solo a "Turno agendado";
+  // si se borran, un turno agendado vuelve a "A coordinar".
+  let estadoFinal = input.estado as EstadoOperativo
+  if (estadoFinal === 'A_COORDINAR' && input.fecha && input.hora) {
+    estadoFinal = 'TURNO_AGENDADO'
+  } else if (estadoFinal === 'TURNO_AGENDADO' && !input.fecha && !input.hora) {
+    estadoFinal = 'A_COORDINAR'
+  }
+
   const resultadoEstado = await cambiarEstadoTrabajo(
     input.trabajo_id,
-    input.estado as EstadoOperativo
+    estadoFinal
   )
 
   if (resultadoEstado.error) {

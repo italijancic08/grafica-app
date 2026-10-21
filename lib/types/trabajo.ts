@@ -5,11 +5,15 @@ export type EstadoOperativo =
   | 'EN_PRODUCCION'
   | 'TERCERIZADO'
   | 'TERMINADO'
+  | 'A_COORDINAR'
+  | 'TURNO_AGENDADO'
   | 'PARA_RETIRAR'
   | 'RETIRADO'
   | 'CANCELADO'
 
 export type EstadoFinanciero = 'SIN_PAGAR' | 'PAGO_PARCIAL' | 'PAGADO'
+
+export type TipoDescuento = 'PORCENTAJE' | 'MONTO'
 
 export type RubroTrabajo =
   | 'carteleria' | 'articulos_sublimados' | 'banners' | 'calcomanias_impresas' | 'calcomanias_rotuladas'
@@ -30,6 +34,9 @@ export interface Trabajo {
   fecha_finalizacion: string | null
   fecha_retiro: string | null
   precio_final: number
+  precio_base: number | null
+  descuento_tipo: TipoDescuento | null
+  descuento_valor: number
   sena: number
   ancho_cm: number | null
   largo_cm: number | null
@@ -56,6 +63,8 @@ export const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {
   EN_PRODUCCION: 'En producción',
   TERCERIZADO: 'Tercerizado',
   TERMINADO: 'Terminado',
+  A_COORDINAR: 'A coordinar',
+  TURNO_AGENDADO: 'Turno agendado',
   PARA_RETIRAR: 'Para retirar',
   RETIRADO: 'Retirado',
   CANCELADO: 'Cancelado',
@@ -65,6 +74,11 @@ export const ETIQUETAS_ESTADO_FINANCIERO: Record<EstadoFinanciero, string> = {
   SIN_PAGAR: 'Sin pagar',
   PAGO_PARCIAL: 'Pago parcial',
   PAGADO: 'Pagado',
+}
+
+export const ETIQUETAS_TIPO_DESCUENTO: Record<TipoDescuento, string> = {
+  PORCENTAJE: 'Porcentaje (%)',
+  MONTO: 'Monto fijo ($)',
 }
 
 export const ETIQUETAS_RUBRO_TRABAJO: Record<RubroTrabajo, string> = {

@@ -10,9 +10,11 @@ import { formatearMoneda } from '@/lib/utils/formato'
 export default function CambiarEstado({
   trabajoId,
   estadoActual,
+  requiereTurno,
 }: {
   trabajoId: string
   estadoActual: EstadoOperativo
+  requiereTurno: boolean
 }) {
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
@@ -20,7 +22,10 @@ export default function CambiarEstado({
   const [avisoDeuda, setAvisoDeuda] = useState<{ saldo: number } | null>(null)
   const [avisoComprobante, setAvisoComprobante] = useState<string | null>(null)
 
-  const opciones = TRANSICIONES_VALIDAS[estadoActual]
+  // "A coordinar" y "Turno agendado" solo aparecen en trabajos con turno
+  const opciones = TRANSICIONES_VALIDAS[estadoActual].filter(
+    (estado) => requiereTurno || (estado !== 'A_COORDINAR' && estado !== 'TURNO_AGENDADO')
+  )
 
   async function ejecutarCambio(nuevoEstado: EstadoOperativo, confirmarConDeuda = false) {
     setError(null)

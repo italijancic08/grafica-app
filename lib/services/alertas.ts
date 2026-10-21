@@ -2,22 +2,30 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Alerta } from '@/lib/types/alerta'
-import { formatearFecha } from '@/lib/utils/formato'
+import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
 
 export async function obtenerAlertas() {
   const supabase = await createClient()
 
-  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas] = await Promise.all([
+  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas, pagosSinComprobante] = await Promise.all([
     supabase.from('materiales_stock_bajo').select('id, nombre, cantidad_actual, unidad_medida, stock_minimo'),
     supabase.from('trabajos_demorados').select('id, numero, fecha_maxima'),
     supabase.from('trabajos_no_retirados').select('id, numero, fecha_maxima'),
     supabase.from('tercerizaciones_demoradas').select('id, trabajo_id, proveedor, fecha_estimada_vuelta, trabajos(numero)'),
+    // Transferencias sin comprobante (los pagos anteriores a esta función están marcados como exentos)
+    supabase
+      .from('pagos')
+      .select('id, trabajo_id, importe, fecha, trabajos(numero)')
+      .eq('medio_pago', 'transferencia')
+      .is('comprobante_url', null)
+      .eq('comprobante_exento', false),
   ])
 
   if (stockBajo.error) return { error: stockBajo.error.message }
   if (trabajosDemorados.error) return { error: trabajosDemorados.error.message }
   if (trabajosNoRetirados.error) return { error: trabajosNoRetirados.error.message }
   if (tercerizacionesDemoradas.error) return { error: tercerizacionesDemoradas.error.message }
+  if (pagosSinComprobante.error) return { error: pagosSinComprobante.error.message }
 
   const alertas: Alerta[] = []
 
@@ -55,6 +63,16 @@ export async function obtenerAlertas() {
       mensaje: `${tz.proveedor} debía devolver el trabajo ${trabajoRel?.numero ?? ''} el ${formatearFecha(tz.fecha_estimada_vuelta)}`,
       fecha: tz.fecha_estimada_vuelta,
       urlDetalle: `/trabajos/${tz.trabajo_id}`,
+    })
+  }
+
+  for (const p of pagosSinComprobante.data ?? []) {
+    const trabajoRel = Array.isArray(p.trabajos) ? p.trabajos[0] : p.trabajos
+    alertas.push({
+      tipo: 'PAGO_SIN_COMPROBANTE',
+      mensaje: `La transferencia de ${formatearMoneda(p.importe)} del ${formatearFecha(p.fecha)} (trabajo ${trabajoRel?.numero ?? ''}) no tiene comprobante cargado`,
+      fecha: p.fecha,
+      urlDetalle: `/trabajos/${p.trabajo_id}`,
     })
   }
 

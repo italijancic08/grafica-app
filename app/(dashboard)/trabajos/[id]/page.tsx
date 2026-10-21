@@ -96,7 +96,14 @@ if (esPresupuesto) {
           </div>
         )}
         <div className="rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500">Precio</p>
+          <p className="text-xs text-gray-500">
+            Precio
+            {t.descuento_tipo && (
+              <span className="ml-1 font-medium text-green-700">
+                · {t.descuento_tipo === 'PORCENTAJE' ? `${t.descuento_valor}% off` : `−${formatearMoneda(t.descuento_valor)}`}
+              </span>
+            )}
+          </p>
           <p className="text-lg font-semibold">
             
 {t.precio_final > 0 || esTrabajo || permiteTrabajosGratis
@@ -126,6 +133,9 @@ if (esPresupuesto) {
         rubro={t.rubro}
         fechaMaxima={t.fecha_maxima}
         precioFinal={t.precio_final}
+        precioBase={t.precio_base ?? t.precio_final}
+        descuentoTipo={t.descuento_tipo ?? null}
+        descuentoValor={t.descuento_valor ?? 0}
         anchoCm={t.ancho_cm ?? null}
         largoCm={t.largo_cm ?? null}
       />
@@ -182,7 +192,7 @@ if (esPresupuesto) {
           <SeccionComprobantes comprobantes={comprobantes ?? []} />
 
           <div className="rounded-lg border border-gray-200 p-4">
-            <CambiarEstado trabajoId={t.id} estadoActual={t.estado_operativo} />
+            <CambiarEstado trabajoId={t.id} estadoActual={t.estado_operativo} requiereTurno={!!t.requiere_turno} />
           </div>
         </>
       )}
