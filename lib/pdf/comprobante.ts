@@ -1,50 +1,59 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib'
-import { formatearMoneda } from '@/lib/utils/formato'
-import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
 import type { Empresa } from '@/lib/types/empresa'
-import { LOGO_PNG_BASE64 } from '@/lib/pdf/logo-base64'
+import { LOGO_HORIZONTAL_PNG_BASE64 } from '@/lib/pdf/logo-horizontal-base64'
 
 // ---------------------------------------------------------------------------
-// Diseño de la factura (A4). Todas las medidas de abajo están en puntos y
-// medidas "desde arriba" (como en un editor de diseño); la función `py()`
-// las convierte a la coordenada de pdf-lib, que cuenta desde abajo.
+// Diseño del recibo (A4). Todas las medidas están en puntos y "desde arriba"
+// (como en un editor de diseño); la función `py()` las convierte a la
+// coordenada de pdf-lib, que cuenta desde abajo.
 // ---------------------------------------------------------------------------
 const ANCHO = 595.28
 const ALTO = 841.89
 
-const ROJO = rgb(237 / 255, 50 / 255, 55 / 255)
-const BLANCO = rgb(1, 1, 1)
-const TEXTO = rgb(0.16, 0.16, 0.16)
-const TEXTO_SUAVE = rgb(0.35, 0.35, 0.35)
-const LINEA = rgb(0.45, 0.45, 0.45)
-const GRIS_TOTAL = rgb(174 / 255, 174 / 255, 174 / 255)
+const ROJO = rgb(1, 0, 0)
+const NARANJA = rgb(1, 0.6, 0)
+const AZUL = rgb(0.1647, 0.2235, 0.5647)
+const NEGRO = rgb(0, 0, 0)
+const GRIS_TEXTO = rgb(0.4, 0.4, 0.4)
+const GRIS_SUAVE = rgb(0.6, 0.6, 0.6)
+const GRIS_LINEA = rgb(0.7176, 0.7176, 0.7176)
+const GRIS_FILA = rgb(0.9529, 0.9529, 0.9529)
+
+// Márgenes del contenido
+const X0 = 82.6
+const X1 = 512.8
+const X_TEXTO = 85.25 // los textos arrancan un poco adentro de la línea
+
+// Columnas de la tabla (borde derecho de cada una; los números van alineados a la derecha)
+const COL_CANTIDAD = 337.68
+const COL_UNITARIO = 435.59
+const COL_TOTAL = 510.18
 
 // Tabla de conceptos
-const TABLA_X0 = 60.6
-const TABLA_X1 = 535.6
-const TABLA_DIV = 429.2 // divisor entre "Concepto" y "Precio"
-const TABLA_TOP = 277.1
-const ALTO_ENCABEZADO = 33
-const ALTO_FILA = 27.7
-const CANTIDAD_FILAS = 12
-
-// Pie rojo
-const PIE_TOP = 727.6
+const TABLA_TOP = 321.7
+const ALTO_FILA = 17.4
+const MIN_FILAS = 4
 
 const py = (desdeArriba: number) => ALTO - desdeArriba
 
-// Íconos (Material Design Icons, Apache 2.0), caja de 24x24
-const ICONO_UBICACION =
-  'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'
-const ICONO_MAIL =
-  'M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'
-const ICONO_TELEFONO =
-  'M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z'
+type Color = ReturnType<typeof rgb>
+
+// "$108.500,00" (sin espacio, como en el diseño). Los negativos salen "-$1.000,00".
+// Se arma a mano porque el separador de miles de toLocaleString('es-AR')
+// cambia según la versión de Node/ICU.
+function dinero(valor: number): string {
+  const n = Math.round(Math.abs(Number(valor) || 0) * 100) / 100
+  const [entero, decimales] = n.toFixed(2).split('.')
+  const conPuntos = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${valor < 0 ? '-' : ''}$${conPuntos},${decimales}`
+}
 
 export async function generarPdfComprobante(datos: {
   numero: string
   fecha: string
   monto: number
+  // Precio del trabajo antes del descuento (null/undefined = sin descuento)
+  precio_base?: number | null
   empresa: Empresa | null
   cliente: {
     nombre_razon_social: string
@@ -56,7 +65,7 @@ export async function generarPdfComprobante(datos: {
   trabajo: {
     numero: string
     descripcion: string
-    rubro: RubroTrabajo
+    rubro?: string | null
   }
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
@@ -70,9 +79,7 @@ export async function generarPdfComprobante(datos: {
   const limpiar = (t: string) =>
     Array.from(t).map((c) => (permitidos.has(c.codePointAt(0)!) ? c : '?')).join('')
 
-  function ancho(t: string, tamano: number, f: PDFFont = font) {
-    return f.widthOfTextAtSize(t, tamano)
-  }
+  const ancho = (t: string, tamano: number, f: PDFFont = font) => f.widthOfTextAtSize(t, tamano)
 
   // Acorta con "…" un texto que no entra en `max` puntos de ancho
   function recortar(t: string, tamano: number, max: number, f: PDFFont = font) {
@@ -113,9 +120,9 @@ export async function generarPdfComprobante(datos: {
     t: string,
     x: number,
     baseDesdeArriba: number,
-    o: { tamano?: number; f?: PDFFont; color?: ReturnType<typeof rgb> } = {}
+    o: { tamano?: number; f?: PDFFont; color?: Color } = {}
   ) {
-    const { tamano = 10, f = font, color = TEXTO } = o
+    const { tamano = 8.9, f = font, color = NEGRO } = o
     page.drawText(t, { x, y: py(baseDesdeArriba), size: tamano, font: f, color })
   }
 
@@ -123,186 +130,142 @@ export async function generarPdfComprobante(datos: {
     t: string,
     xDerecha: number,
     baseDesdeArriba: number,
-    o: { tamano?: number; f?: PDFFont; color?: ReturnType<typeof rgb> } = {}
+    o: { tamano?: number; f?: PDFFont; color?: Color } = {}
   ) {
-    texto(t, xDerecha - ancho(t, o.tamano ?? 10, o.f ?? font), baseDesdeArriba, o)
+    texto(t, xDerecha - ancho(t, o.tamano ?? 8.9, o.f ?? font), baseDesdeArriba, o)
   }
 
-  function textoCentrado(
-    t: string,
-    xIzq: number,
-    xDer: number,
-    baseDesdeArriba: number,
-    o: { tamano?: number; f?: PDFFont; color?: ReturnType<typeof rgb> } = {}
-  ) {
-    const w = ancho(t, o.tamano ?? 10, o.f ?? font)
-    texto(t, xIzq + (xDer - xIzq - w) / 2, baseDesdeArriba, o)
+  function rect(x0: number, yArriba0: number, x1: number, yArriba1: number, color: Color) {
+    page.drawRectangle({ x: x0, y: py(yArriba1), width: x1 - x0, height: yArriba1 - yArriba0, color })
   }
 
-  function linea(x1: number, yArriba1: number, x2: number, yArriba2: number, grosor = 0.6) {
+  function linea(x0: number, x1: number, yArriba: number) {
     page.drawLine({
-      start: { x: x1, y: py(yArriba1) },
-      end: { x: x2, y: py(yArriba2) },
-      thickness: grosor,
-      color: LINEA,
+      start: { x: x0, y: py(yArriba) },
+      end: { x: x1, y: py(yArriba) },
+      thickness: 0.6,
+      color: GRIS_LINEA,
     })
   }
 
-  // --- Logo (arriba a la izquierda) ---
-  const logo = await doc.embedPng(Buffer.from(LOGO_PNG_BASE64, 'base64'))
-  const TAMANO_LOGO = 138
-  page.drawImage(logo, { x: 59.3, y: py(17.4 + TAMANO_LOGO), width: TAMANO_LOGO, height: TAMANO_LOGO })
+  // --- Barra roja superior ---
+  rect(50, 53.3, 545.5, 59.3, ROJO)
 
-  // --- "Factura N° ..." (arriba a la derecha) ---
-  const X_DERECHA = 548.6
-  textoDerecha('Factura', X_DERECHA, 70, { tamano: 15 })
-  textoDerecha(`N° ${limpiar(datos.numero)}`, X_DERECHA, 92, { tamano: 16, f: bold, color: ROJO })
+  // --- Datos de la empresa (arriba a la izquierda) ---
+  const empresa = datos.empresa
+  texto(limpiar(empresa?.nombre ?? 'GraffAR'), X_TEXTO, 92.4, { tamano: 17.8, color: ROJO })
 
-  // --- Casillero de fecha: FECHA | día | mes | año ---
-  const FECHA_TOP = 107
-  const FECHA_BOTTOM = 134.7
-  const cortesFecha = [395, 460.2, 489.2, 518.8, X_DERECHA]
-  page.drawRectangle({
-    x: cortesFecha[0],
-    y: py(FECHA_BOTTOM),
-    width: X_DERECHA - cortesFecha[0],
-    height: FECHA_BOTTOM - FECHA_TOP,
-    borderColor: LINEA,
-    borderWidth: 0.75,
+  const datosEmpresa: string[] = []
+  if (empresa?.cuit) datosEmpresa.push(limpiar(empresa.cuit))
+  if (empresa?.direccion) {
+    // Si la dirección tiene salto de línea o una coma, se muestra en dos renglones
+    const dir = limpiar(empresa.direccion).trim()
+    const corte = dir.includes('\n') ? dir.indexOf('\n') : dir.indexOf(',')
+    if (corte > 0) {
+      datosEmpresa.push(dir.slice(0, corte).trim(), dir.slice(corte + 1).trim())
+    } else {
+      datosEmpresa.push(dir)
+    }
+  }
+  const MAX_EMPRESA = 195
+  let base = 108.6
+  datosEmpresa.forEach((l, i) => {
+    texto(recortar(l, 8.9, MAX_EMPRESA), X_TEXTO, base, { color: GRIS_TEXTO })
+    base += i === 0 ? 14 : 11.3
   })
-  for (const x of cortesFecha.slice(1, 4)) linea(x, FECHA_TOP, x, FECHA_BOTTOM, 0.75)
+  if (empresa?.telefono) {
+    // El teléfono va separado del resto, como en el diseño
+    texto(limpiar(empresa.telefono), X_TEXTO, base + 2.6, { color: GRIS_TEXTO })
+  }
+
+  // --- Logo (arriba a la derecha) ---
+  const logo = await doc.embedPng(Buffer.from(LOGO_HORIZONTAL_PNG_BASE64, 'base64'))
+  page.drawImage(logo, { x: 293.1, y: py(154.5), width: 219.1, height: 68.3 })
+
+  // --- Título, número y fecha ---
+  texto('Recibo', X_TEXTO, 182.8, { tamano: 28.4, f: bold, color: ROJO })
+  textoDerecha(`N° ${limpiar(datos.numero)}`, X1 - 2.6, 182.8, { tamano: 8.9, color: GRIS_SUAVE })
 
   const [anio, mes, dia] = datos.fecha.split('T')[0].split('-')
-  const baseFecha = FECHA_TOP + (FECHA_BOTTOM - FECHA_TOP) / 2 + 3.6
-  textoCentrado('FECHA', cortesFecha[0], cortesFecha[1], baseFecha, { tamano: 11, color: TEXTO_SUAVE })
-  ;[dia, mes, anio].forEach((valor, i) => {
-    textoCentrado(valor ?? '', cortesFecha[i + 1], cortesFecha[i + 2], baseFecha, { tamano: 10 })
+  texto(`Fecha: ${dia}/${mes}/${anio}`, X_TEXTO, 202.6, { tamano: 10.7, f: bold, color: NARANJA })
+
+  // --- Datos del cliente ---
+  const cliente = datos.cliente
+  const camposCliente: [string, string][] = [
+    ['Razón Social:', cliente.nombre_razon_social],
+    ['Cuit/Dni:', cliente.cuit_cuil ?? ''],
+    ['Dirección:', cliente.domicilio ?? ''],
+  ]
+  camposCliente.forEach(([etiqueta, valor], i) => {
+    const t = recortar(limpiar(`${etiqueta} ${valor}`.trimEnd()), 8.9, X1 - X_TEXTO)
+    texto(t, X_TEXTO, 230.5 + 16 * i, { color: GRIS_TEXTO })
   })
 
-  // --- Datos del cliente (Cliente / Teléfono / Dirección / Correo) ---
-  const TAM_ETIQUETA = 10
-  const campos: { etiqueta: string; valor: string; xEtiqueta: number; xFin: number; baseArriba: number }[] = [
-    { etiqueta: 'Cliente:', valor: datos.cliente.nombre_razon_social, xEtiqueta: 60.3, xFin: 310.6, baseArriba: 220 },
-    { etiqueta: 'Teléfono:', valor: datos.cliente.telefono ?? '', xEtiqueta: 345.4, xFin: 537.5, baseArriba: 220 },
-    { etiqueta: 'Dirección:', valor: datos.cliente.domicilio ?? '', xEtiqueta: 60.3, xFin: 310.6, baseArriba: 246.5 },
-    { etiqueta: 'Correo:', valor: datos.cliente.email ?? '', xEtiqueta: 345.4, xFin: 537.5, baseArriba: 246.5 },
-  ]
-  // El renglón empieza después de la etiqueta más ancha de su columna
-  const inicioRenglon = (xEtiqueta: number) =>
-    xEtiqueta +
-    Math.max(...campos.filter((c) => c.xEtiqueta === xEtiqueta).map((c) => ancho(c.etiqueta, TAM_ETIQUETA))) +
-    6
+  linea(X0, X1, 281.4)
 
-  for (const c of campos) {
-    const xInicio = inicioRenglon(c.xEtiqueta)
-    texto(c.etiqueta, c.xEtiqueta, c.baseArriba, { tamano: TAM_ETIQUETA, color: TEXTO_SUAVE })
-    linea(xInicio, c.baseArriba + 1.8, c.xFin, c.baseArriba + 1.8, 0.6)
-    if (c.valor) {
-      const valor = recortar(limpiar(c.valor), 10, c.xFin - xInicio - 6)
-      texto(valor, xInicio + 3, c.baseArriba - 2, { tamano: 10 })
+  // --- Encabezado de la tabla ---
+  const BASE_ENCABEZADO = 312.5
+  const encabezado = { tamano: 10.7, f: bold, color: ROJO }
+  texto('Descripción', X_TEXTO, BASE_ENCABEZADO, encabezado)
+  textoDerecha('Cantidad', COL_CANTIDAD, BASE_ENCABEZADO, encabezado)
+  textoDerecha('Precio unitario', COL_UNITARIO, BASE_ENCABEZADO, encabezado)
+  textoDerecha('Precio total', COL_TOTAL, BASE_ENCABEZADO, encabezado)
+
+  // --- Concepto: la descripción del trabajo (una sola línea de detalle) ---
+  const total = Number(datos.monto) || 0
+  const base0 = datos.precio_base != null ? Number(datos.precio_base) : total
+  const subtotal = base0 > 0 ? base0 : total
+  const ajuste = Math.round((total - subtotal) * 100) / 100 // negativo si hubo descuento
+
+  const anchoDescripcion = COL_CANTIDAD - 50 - X_TEXTO // deja lugar a la columna "Cantidad"
+  let lineasDescripcion = envolver(limpiar(datos.trabajo.descripcion ?? '').trim(), 8.9, anchoDescripcion)
+  const MAX_LINEAS = 8
+  if (lineasDescripcion.length > MAX_LINEAS) {
+    lineasDescripcion = lineasDescripcion.slice(0, MAX_LINEAS)
+    lineasDescripcion[MAX_LINEAS - 1] = recortar(`${lineasDescripcion[MAX_LINEAS - 1]} …`, 8.9, anchoDescripcion)
+  }
+
+  // La fila del concepto ocupa tantas "filas" de tabla como renglones tenga la descripción
+  const LINEA_DESC = 11.2
+  const filasConcepto = Math.max(1, Math.ceil((lineasDescripcion.length * LINEA_DESC + 6.2) / ALTO_FILA))
+  const filasRelleno = Math.max(0, MIN_FILAS - filasConcepto)
+  const tablaBottom = TABLA_TOP + ALTO_FILA * (filasConcepto + filasRelleno)
+
+  // Franjas grises alternadas: concepto, (blanco), gris, (blanco)...
+  rect(X0, TABLA_TOP, X1, TABLA_TOP + ALTO_FILA * filasConcepto, GRIS_FILA)
+  for (let i = 1; i <= filasRelleno; i++) {
+    if (i % 2 === 0) {
+      const top = TABLA_TOP + ALTO_FILA * (filasConcepto + i - 1)
+      rect(X0, top, X1, top + ALTO_FILA, GRIS_FILA)
     }
   }
 
-  // --- Tabla de conceptos ---
-  const tablaBottom = TABLA_TOP + ALTO_ENCABEZADO + ALTO_FILA * CANTIDAD_FILAS
-  page.drawRectangle({
-    x: TABLA_X0,
-    y: py(tablaBottom),
-    width: TABLA_X1 - TABLA_X0,
-    height: tablaBottom - TABLA_TOP,
-    borderColor: LINEA,
-    borderWidth: 0.6,
-  })
-  linea(TABLA_DIV, TABLA_TOP, TABLA_DIV, tablaBottom)
-  for (let i = 0; i < CANTIDAD_FILAS; i++) {
-    const yLinea = TABLA_TOP + ALTO_ENCABEZADO + ALTO_FILA * i
-    linea(TABLA_X0, yLinea, TABLA_X1, yLinea)
-  }
-
-  const baseEncabezado = TABLA_TOP + ALTO_ENCABEZADO / 2 + 3.8
-  textoCentrado('Concepto', TABLA_X0, TABLA_DIV, baseEncabezado, { tamano: 11, f: bold, color: TEXTO_SUAVE })
-  textoCentrado('Precio', TABLA_DIV, TABLA_X1, baseEncabezado, { tamano: 11, f: bold, color: TEXTO_SUAVE })
-
-  // Fila 1: número y rubro del trabajo (con el precio). Filas siguientes: descripción.
-  const PAD = 10
-  const anchoConcepto = TABLA_DIV - TABLA_X0 - PAD * 2
-  const baseFila = (i: number) => TABLA_TOP + ALTO_ENCABEZADO + ALTO_FILA * i + ALTO_FILA / 2 + 3.5
-
-  const titulo = recortar(
-    limpiar(`${datos.trabajo.numero} — ${ETIQUETAS_RUBRO_TRABAJO[datos.trabajo.rubro]}`),
-    10,
-    anchoConcepto,
-    bold
-  )
-  texto(titulo, TABLA_X0 + PAD, baseFila(0), { tamano: 10, f: bold })
-  textoDerecha(formatearMoneda(datos.monto), TABLA_X1 - PAD, baseFila(0), { tamano: 10 })
-
-  let lineasDescripcion = envolver(limpiar(datos.trabajo.descripcion ?? ''), 10, anchoConcepto)
-  if (lineasDescripcion.length === 1 && lineasDescripcion[0] === '') lineasDescripcion = []
-  const maxDescripcion = CANTIDAD_FILAS - 1
-  if (lineasDescripcion.length > maxDescripcion) {
-    lineasDescripcion = lineasDescripcion.slice(0, maxDescripcion)
-    lineasDescripcion[maxDescripcion - 1] = recortar(`${lineasDescripcion[maxDescripcion - 1]} …`, 10, anchoConcepto)
-  }
   lineasDescripcion.forEach((l, i) => {
-    texto(l, TABLA_X0 + PAD, baseFila(i + 1), { tamano: 10, color: TEXTO_SUAVE })
+    texto(l, X_TEXTO, TABLA_TOP + 12 + LINEA_DESC * i, { color: NEGRO })
   })
+  const baseNumeros = TABLA_TOP + 15.4
+  textoDerecha('1', COL_CANTIDAD, baseNumeros, { color: GRIS_TEXTO })
+  textoDerecha(dinero(subtotal), COL_UNITARIO, baseNumeros, { color: GRIS_TEXTO })
+  textoDerecha(dinero(subtotal), COL_TOTAL, baseNumeros, { color: GRIS_TEXTO })
 
-  // --- Total ---
-  const TOTAL_X0 = 380.9
-  const TOTAL_TOP = 661.9
-  const TOTAL_BOTTOM = 692.2
-  page.drawRectangle({
-    x: TOTAL_X0,
-    y: py(TOTAL_BOTTOM),
-    width: TABLA_X1 - TOTAL_X0,
-    height: TOTAL_BOTTOM - TOTAL_TOP,
-    color: GRIS_TOTAL,
-  })
-  const baseTotal = TOTAL_TOP + (TOTAL_BOTTOM - TOTAL_TOP) / 2 + 4.8
-  texto('Total', TOTAL_X0 + 14, baseTotal, { tamano: 14, f: bold })
-  // El monto se achica si es tan grande que chocaría con la palabra "Total"
-  const montoTotal = formatearMoneda(datos.monto)
-  const anchoDisponible = TABLA_X1 - 12 - (TOTAL_X0 + 14 + ancho('Total', 14, bold) + 10)
-  let tamanoMonto = 13
-  while (tamanoMonto > 8 && ancho(montoTotal, tamanoMonto, bold) > anchoDisponible) tamanoMonto -= 0.5
-  textoDerecha(montoTotal, TABLA_X1 - 12, baseTotal, { tamano: tamanoMonto, f: bold })
+  linea(X0, X1, tablaBottom)
 
-  texto(
-    'Comprobante interno de la gráfica. No tiene validez fiscal ante AFIP.',
-    TABLA_X0,
-    TOTAL_BOTTOM + 14,
-    { tamano: 7.5, color: TEXTO_SUAVE }
-  )
+  // --- Notas, subtotal, ajustes y total ---
+  const baseNotas = tablaBottom + 19.1
+  texto(limpiar(`Notas: Trabajo ${datos.trabajo.numero}`), X_TEXTO, baseNotas, { color: GRIS_SUAVE })
 
-  // --- Pie rojo con los datos de contacto de la empresa ---
-  page.drawRectangle({ x: 0, y: 0, width: ANCHO, height: ALTO - PIE_TOP, color: ROJO })
+  textoDerecha('Subtotal', COL_UNITARIO, baseNotas, { color: AZUL })
+  textoDerecha(dinero(subtotal), COL_TOTAL, baseNotas, { f: bold, color: NEGRO })
 
-  const contactos = [
-    { icono: ICONO_UBICACION, texto: datos.empresa?.direccion, separacion: 19 },
-    { icono: ICONO_MAIL, texto: datos.empresa?.email, separacion: 21 },
-    { icono: ICONO_TELEFONO, texto: datos.empresa?.telefono, separacion: 18 },
-  ].filter((c): c is { icono: string; texto: string; separacion: number } => Boolean(c.texto))
+  const baseAjustes = baseNotas + 17.3
+  textoDerecha('Ajustes', COL_UNITARIO, baseAjustes, { color: AZUL })
+  textoDerecha(dinero(ajuste), COL_TOTAL, baseAjustes, { f: bold, color: GRIS_TEXTO })
 
-  // Posición de cada ícono (se usan los primeros según cuántos datos haya cargados)
-  const posiciones = [51.6, 269, 444.7]
-  const slots = posiciones.slice(0, contactos.length)
-  const ESCALA_ICONO = 0.6
-  const BASE_PIE = 788.5 // línea base del texto, desde arriba
-
-  contactos.forEach((c, i) => {
-    const xIcono = slots[i]
-    const xTexto = xIcono + c.separacion
-    const xLimite = i < contactos.length - 1 ? slots[i + 1] - 12 : TABLA_X1
-    page.drawSvgPath(c.icono, {
-      x: xIcono,
-      y: py(BASE_PIE - 10.5),
-      scale: ESCALA_ICONO,
-      color: BLANCO,
-      borderWidth: 0,
-    })
-    texto(recortar(limpiar(c.texto), 10, xLimite - xTexto), xTexto, BASE_PIE, { tamano: 10, color: BLANCO })
-  })
+  // El monto total se achica si es tan grande que se saldría de la hoja
+  const montoTotal = dinero(total)
+  let tamanoTotal = 17.8
+  while (tamanoTotal > 10 && ancho(montoTotal, tamanoTotal, bold) > COL_TOTAL - 300) tamanoTotal -= 0.5
+  textoDerecha(montoTotal, COL_TOTAL, baseAjustes + 20.2, { tamano: tamanoTotal, f: bold, color: NARANJA })
 
   return doc.save()
 }

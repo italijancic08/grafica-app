@@ -61,6 +61,7 @@ export async function generarComprobante(
         descripcion,
         rubro,
         precio_final,
+        precio_base,
         cliente_id,
         clientes(
           nombre_razon_social,
@@ -134,6 +135,7 @@ export async function generarComprobante(
     numero: factura.numero,
     fecha: factura.fecha,
     monto: factura.monto,
+    precio_base: trabajo.precio_base,
     empresa: empresa ?? null,
 
     cliente: {
@@ -269,6 +271,7 @@ async function regenerarPdfDeFactura(
       numero,
       descripcion,
       rubro,
+      precio_base,
       clientes(
         nombre_razon_social,
         cuit_cuil,
@@ -303,6 +306,7 @@ async function regenerarPdfDeFactura(
     numero: factura.numero,
     fecha: factura.fecha,
     monto: factura.monto,
+    precio_base: trabajo.precio_base,
     empresa: empresa ?? null,
     cliente: {
       nombre_razon_social: cliente.nombre_razon_social,

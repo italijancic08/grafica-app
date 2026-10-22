@@ -29,7 +29,7 @@ export default function CategoriasVehiculos({ iniciales, administrador, error }:
     setGuardando(true)
     setErrorForm('')
     try {
-      const resultado = await guardarCategoria(editando, { ...form, fotos: fotosTexto.split('\n').map(x => x.trim()).filter(Boolean) })
+      const resultado = await guardarCategoria(editando ?? null, { ...form, fotos: fotosTexto.split('\n').map(x => x.trim()).filter(Boolean) })
       if ('error' in resultado && resultado.error) { setErrorForm(resultado.error); return }
       window.location.reload()
     } catch { setErrorForm('No se pudo guardar la categoría.') }
