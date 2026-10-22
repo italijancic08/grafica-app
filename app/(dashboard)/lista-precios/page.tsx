@@ -1,10 +1,15 @@
 import GestionPrecios from './gestion-precios'
+import ListasSlides from './listas-slides'
+import ListaPolarizados from './lista-polarizados'
+import Sublimaciones from './sublimaciones'
+import CategoriasVehiculos from './categorias-vehiculos'
 import { listarListaPrecios } from '@/lib/services/lista-precios'
+import { listarSublimaciones } from '@/lib/services/sublimaciones'
 import { esAdministrador } from '@/lib/auth/roles'
 
 export default async function ListaPreciosPage() {
-  const [resultado, administrador] = await Promise.all([
-    listarListaPrecios(), esAdministrador(),
+  const [resultado, sublimaciones, administrador] = await Promise.all([
+    listarListaPrecios(), listarSublimaciones(), esAdministrador(),
   ])
 
   if (resultado.error) {
@@ -14,5 +19,22 @@ export default async function ListaPreciosPage() {
     </div>
   }
 
-  return <GestionPrecios iniciales={resultado.data ?? []} administrador={administrador} />
+  return <ListasSlides slides={[
+    {
+      id: 'grafica', titulo: 'Lista de precios gráfica',
+      contenido: <GestionPrecios iniciales={resultado.data ?? []} administrador={administrador} />,
+    },
+    {
+      id: 'polarizados', titulo: 'Lista de precios polarizados',
+      contenido: <ListaPolarizados />,
+    },
+    {
+      id: 'sublimaciones', titulo: 'Sublimaciones',
+      contenido: <Sublimaciones items={sublimaciones.data ?? []} administrador={administrador} error={sublimaciones.error} />,
+    },
+    {
+      id: 'categorias', titulo: 'Categorías de vehículos',
+      contenido: <CategoriasVehiculos />,
+    },
+  ]} />
 }
