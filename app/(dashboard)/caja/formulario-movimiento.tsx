@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { registrarMovimientoManual } from '@/lib/services/caja'
+import { registrarMovimientoManual, adjuntarComprobanteMovimiento } from '@/lib/services/caja'
+import { subirComprobanteMovimientoCaja } from '@/lib/utils/subir-comprobante-caja'
 import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO, type Rubro, type TipoMovimientoCaja } from '@/lib/types/caja'
 
@@ -16,6 +17,8 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
   const [rubro, setRubro] = useState<Rubro>('otros_varios')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [archivo, setArchivo] = useState<File | null>(null)
+  const [claveArchivo, setClaveArchivo] = useState(0)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -36,8 +39,29 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
         return
       }
 
+      // El comprobante es opcional: si falla la subida, el movimiento ya quedó
+      // registrado y se puede adjuntar después desde la lista de movimientos.
+      let avisoComprobante: string | null = null
+      if (medioPago === 'transferencia' && archivo && resultado.data) {
+        const subida = await subirComprobanteMovimientoCaja(resultado.data.id, archivo)
+        if (subida.error || !subida.ruta) {
+          avisoComprobante = subida.error ?? 'No se pudo subir el archivo.'
+        } else {
+          const adjuntado = await adjuntarComprobanteMovimiento(resultado.data.id, subida.ruta)
+          if (adjuntado.error) avisoComprobante = adjuntado.error
+        }
+      }
+
       setMonto('')
       setConcepto('')
+      setArchivo(null)
+      setClaveArchivo((n) => n + 1)
+      if (avisoComprobante) {
+        // Se deja el formulario abierto para que se vea el aviso.
+        setError(`El movimiento se registró, pero no se pudo adjuntar el comprobante: ${avisoComprobante} Podés adjuntarlo desde la lista de movimientos.`)
+        router.refresh()
+        return
+      }
       setAbierto(false)
       router.refresh()
     } catch (err) {
@@ -126,6 +150,21 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
           className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         />
       </div>
+
+      {medioPago === 'transferencia' && (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">
+            Comprobante <span className="font-normal text-gray-400">(opcional)</span>
+          </label>
+          <input
+            key={claveArchivo}
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+            className="block w-56 text-xs text-gray-600 file:mr-2 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:font-medium file:text-gray-700"
+          />
+        </div>
+      )}
 
       <button
         type="submit"

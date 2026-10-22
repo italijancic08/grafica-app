@@ -6,6 +6,7 @@ import { actualizarMovimientoCaja } from '@/lib/services/caja'
 import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO, type Rubro, type MovimientoCaja, type TipoMovimientoCaja } from '@/lib/types/caja'
 import { formatearMoneda, diaDelMes } from '@/lib/utils/formato'
+import ComprobanteMovimiento from './comprobante-movimiento'
 
 export default function FilaMovimientoCaja({
   movimiento,
@@ -145,7 +146,10 @@ export default function FilaMovimientoCaja({
         </span>
       </td>
       <td className="px-4 py-2">{movimiento.rubro ? ETIQUETAS_RUBRO[movimiento.rubro] : '—'}</td>
-      <td className="px-4 py-2">{movimiento.medio_pago ? ETIQUETAS_MEDIO_PAGO[movimiento.medio_pago] : '—'}</td>
+      <td className="px-4 py-2">
+        {movimiento.medio_pago ? ETIQUETAS_MEDIO_PAGO[movimiento.medio_pago] : '—'}
+        {movimiento.medio_pago === 'transferencia' && <ComprobanteMovimiento movimiento={movimiento} />}
+      </td>
       <td className="px-4 py-2">{movimiento.concepto}</td>
       <td className="px-4 py-2">{movimiento.trabajos?.numero ?? '—'}</td>
       <td className="px-4 py-2 text-right">

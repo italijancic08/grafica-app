@@ -65,6 +65,7 @@ export async function generarComprobante(
           nombre_razon_social,
           cuit_cuil,
           domicilio,
+          telefono,
           whatsapp,
           email
         )
@@ -139,6 +140,8 @@ export async function generarComprobante(
         cliente.nombre_razon_social,
       cuit_cuil: cliente.cuit_cuil,
       domicilio: cliente.domicilio,
+      telefono: cliente.telefono ?? cliente.whatsapp,
+      email: cliente.email,
     },
 
     trabajo: {

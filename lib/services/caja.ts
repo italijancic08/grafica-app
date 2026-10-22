@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { movimientoCajaSchema, type MovimientoCajaInput } from '@/lib/validations/caja'
 import { revalidatePath } from 'next/cache'
 import { mesActualArgentina } from '@/lib/utils/formato'
+import { registrarAuditoria } from '@/lib/services/auditoria'
 
 function rangoDelMes(mes: string) {
   const [anio, mesNum] = mes.split('-').map(Number)
@@ -20,7 +21,7 @@ export async function listarMovimientosDelMes(mes?: string) {
 
   const { data, error } = await supabase
     .from('caja_movimientos')
-    .select('*, trabajos(numero)')
+    .select('*, trabajos(numero), pagos(comprobante_url, comprobante_exento)')
     .gte('fecha', `${inicio}T00:00:00`)
     .lt('fecha', `${finExclusive}T00:00:00`)
     .order('fecha', { ascending: true })
@@ -96,6 +97,50 @@ export async function actualizarMovimientoCaja(id: string, input: MovimientoCaja
     entidad: 'caja',
     entidad_id: id,
     detalle: { tipo: parsed.data.tipo, monto: parsed.data.monto, concepto: parsed.data.concepto, rubro: parsed.data.rubro },
+  })
+
+  revalidatePath('/caja')
+  return { success: true }
+}
+
+// Guarda en el movimiento manual la ruta del comprobante que el navegador ya
+// subió al bucket "comprobantes" (carpeta caja/<movimiento_id>/). No modifica
+// importes, por eso se puede usar aunque el mes de caja esté cerrado.
+// Los movimientos que vienen de un pago de trabajo guardan su comprobante en
+// el pago (ver adjuntarComprobantePago en lib/services/pagos.ts).
+export async function adjuntarComprobanteMovimiento(movimientoId: string, ruta: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Debés iniciar sesión.' }
+
+  if (!ruta.startsWith(`caja/${movimientoId}/`)) {
+    return { error: 'Ruta de comprobante inválida.' }
+  }
+
+  const { data: movimiento } = await supabase
+    .from('caja_movimientos')
+    .select('id, pago_id')
+    .eq('id', movimientoId)
+    .single()
+
+  if (!movimiento) return { error: 'No se encontró el movimiento' }
+
+  if (movimiento.pago_id) {
+    return { error: 'Este movimiento viene de un pago de trabajo: su comprobante se guarda en el pago.' }
+  }
+
+  const { error } = await supabase
+    .from('caja_movimientos')
+    .update({ comprobante_url: ruta })
+    .eq('id', movimientoId)
+
+  if (error) return { error: error.message }
+
+  await registrarAuditoria({
+    usuarioId: user.id,
+    accion: 'adjuntar_comprobante_caja',
+    entidad: 'caja',
+    entidadId: movimientoId,
   })
 
   revalidatePath('/caja')

@@ -23,7 +23,10 @@ export interface MovimientoCaja {
   usuario_id: string | null
   medio_pago: MedioPago | null
   rubro: Rubro | null
+  pago_id: string | null
+  comprobante_url: string | null
   trabajos?: { numero: string } | null
+  pagos?: { comprobante_url: string | null; comprobante_exento: boolean } | null
 }
 
 export const ETIQUETAS_RUBRO: Record<Rubro, string> = {

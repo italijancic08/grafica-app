@@ -187,5 +187,6 @@ export async function adjuntarComprobantePago(pagoId: string, ruta: string) {
 
   revalidatePath(`/trabajos/${pago.trabajo_id}`)
   revalidatePath('/alertas')
+  revalidatePath('/caja')
   return { success: true }
 }

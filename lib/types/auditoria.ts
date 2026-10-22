@@ -17,6 +17,8 @@ export const ETIQUETAS_ACCION: Record<string, string> = {
   registrar_movimiento: 'Movimiento de stock',
   registrar_movimiento_caja: 'Movimiento de caja',
   editar_movimiento_caja: 'Movimiento de caja editado',
+  adjuntar_comprobante_pago: 'Comprobante de pago adjuntado',
+  adjuntar_comprobante_caja: 'Comprobante de caja adjuntado',
   cerrar_caja_mensual: 'Cierre de caja mensual',
   convertir_presupuesto: 'Presupuesto convertido',
   aceptar_presupuesto: 'Presupuesto aceptado',
