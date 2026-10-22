@@ -52,7 +52,7 @@ const MODULOS: Modulo[] = [
   { nombre: 'Caja', href: '/caja', icono: Banknote },
   { nombre: 'Fichaje', href: '/fichaje', icono: Clock3 },
   { nombre: 'Stock', href: '/stock', icono: Boxes },
-  { nombre: 'Lista de precios', href: '/lista-precios', icono: Tags },
+  { nombre: 'Listas', href: '/lista-precios', icono: Tags },
   { nombre: 'Tercerizaciones', href: '/tercerizados', icono: Truck },
   { nombre: 'Calculadoras', href: '/calculadoras', icono: Calculator },
   { nombre: 'Facturas', href: '/facturas', icono: Receipt },

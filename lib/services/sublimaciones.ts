@@ -3,7 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
+async function autorizar() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Iniciá sesión para modificar sublimaciones.' }
+  }
+
+  return { supabase, user }
+}
 import { registrarAuditoria } from '@/lib/services/auditoria'
 
 const campo = z.string().trim().max(500).nullable()

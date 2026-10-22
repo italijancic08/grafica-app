@@ -1,0 +1,32 @@
+
+INSERT INTO public.lista_sublimaciones
+  (articulo, tela, material, temperatura, tiempo, presion, nota)
+VALUES
+  ('GORRAS', 'NEOPRENE', NULL, '210', '30', '6', 'ALTURA MAXIMA ESTAMPADO 6CM'),
+  ('CAMISETAS', 'JERSEY SET', NULL, '185', '50', '6.5', NULL),
+  ('BOLSOS', 'CORDURA', NULL, '190', '60', '6', NULL),
+  ('remeras', 'spun', NULL, '180', '60', '5.6', NULL),
+  ('delantal', 'tropicana', NULL, '190', '60', '5.6', NULL),
+  ('buzo algodon tela sublimable', NULL, NULL, '180', '60', '5.6', NULL),
+  ('mouse pad', 'neoprene', NULL, '180', '60', '6.5', NULL),
+  ('llaveros destapadores', 'plastico', NULL, '200', '30', '6', NULL),
+  ('fundas termicas', 'neoprene', NULL, '180', '70', '7', NULL),
+  ('Llavero cinta', NULL, NULL, '200', '60', '6', NULL),
+  ('papel', NULL, NULL, '190', '15', NULL, NULL),
+  ('Termotransferible', NULL, NULL, '200', '45', '6', NULL),
+  ('Tarjeta Carnet', NULL, 'PVC', '170', '125', '6', NULL),
+  ('Taza', NULL, 'Ceramica', '180', '180', '6',
+    'No superar los 23cm de largo para que quede bien el diseño y probar antes de calentar la maquina'),
+  ('cintas sublimables', NULL, NULL, '200', '45', '6', NULL),
+  ('Bolsa', 'Friselina', NULL, '160grados1', NULL, NULL, '160-160 o 60'),
+  ('REMERAS', 'ALGODON', 'FLUO/negro', '160', '20', '6',
+    'En termo fluor tener cuidado con el material ya que traspasa la tinta'),
+  ('CAMISAS', 'GRAFA', 'BLANCO', '160', '20', '5.6', NULL),
+  ('CAMPERAS', 'GABARDINA', 'BLANCO', '160', '20', '5.6',
+    'CUIDADO CON EL RELLENO LO ENDURECE'),
+  ('GORRAS', 'NEOPRENE', 'FLUO', '180', '20', '6', NULL),
+  ('VINILO METALICO', 'VINILO DORADO/CROMADO', NULL, '185', '35', '6', NULL),
+  ('yerberos', NULL, NULL, '180', '60', NULL, NULL),
+  ('textil', NULL, NULL, '160ºC', '20seg', '6', NULL),
+  ('Cuerina', NULL, NULL, '125ºC', '8seg - 5seg', '7',
+    'Poner papel manteca arriba y abajo. Hacer estampado en dos tiempos, el primero en 8seg y el segundo en 5seg');
