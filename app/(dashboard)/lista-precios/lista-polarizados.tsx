@@ -88,8 +88,7 @@ export default function ListaPolarizados({
         return
       }
 
-      setEditando(undefined)
-      router.refresh()
+      window.location.reload()
     } catch {
       setErrorForm('No se pudo guardar el artículo.')
     } finally {
@@ -138,7 +137,7 @@ export default function ListaPolarizados({
             Lista de precios polarizados
           </h1>
           <p className="text-sm text-gray-500">
-            {items.length} artículos. Tarjeta: 6 pagos sin interés.
+            {items.length} artículos.
           </p>
         </div>
 

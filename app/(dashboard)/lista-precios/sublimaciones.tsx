@@ -19,6 +19,7 @@ export default function Sublimaciones({ items, administrador, error }: {
   error?: string
 }) {
   const router = useRouter()
+  const [registros, setRegistros] = useState(items)
   const [busqueda, setBusqueda] = useState('')
   const [editando, setEditando] = useState<string | null | undefined>(undefined)
   const [form, setForm] = useState<DatosSublimacion>(VACIO)
@@ -27,10 +28,10 @@ export default function Sublimaciones({ items, administrador, error }: {
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    if (!q) return items
-    return items.filter(i => [i.articulo, i.tela, i.material, i.nota]
+    if (!q) return registros
+    return registros.filter(i => [i.articulo, i.tela, i.material, i.nota]
       .some(v => (v ?? '').toLowerCase().includes(q)))
-  }, [items, busqueda])
+  }, [registros, busqueda])
 
   function abrir(item?: Sublimacion) {
     setEditando(item?.id ?? null)
@@ -48,8 +49,7 @@ export default function Sublimaciones({ items, administrador, error }: {
     try {
       const resultado = await guardarSublimacion(editando ?? null, form)
       if ('error' in resultado && resultado.error) { setErrorForm(resultado.error); return }
-      setEditando(undefined)
-      router.refresh()
+      window.location.reload()
     } catch { setErrorForm('No se pudo guardar el artículo.') }
     finally { setGuardando(false) }
   }
@@ -60,6 +60,7 @@ export default function Sublimaciones({ items, administrador, error }: {
     try {
       const resultado = await borrarSublimacion(item.id)
       if ('error' in resultado && resultado.error) { window.alert(resultado.error); return }
+      setRegistros(prev => prev.filter(i => i.id !== item.id))
       router.refresh()
     } catch { window.alert('No se pudo eliminar el artículo.') }
     finally { setGuardando(false) }
@@ -89,7 +90,7 @@ export default function Sublimaciones({ items, administrador, error }: {
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="mb-1 text-xl font-semibold text-gray-900">Sublimaciones</h1>
-        <p className="text-sm text-gray-500">{items.length} artículo{items.length === 1 ? '' : 's'}.</p>
+        <p className="text-sm text-gray-500">Guía para las sublimaciones.</p>
       </div>
       {administrador && <button onClick={() => abrir()} className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
         <Plus size={16} /> Nuevo artículo
@@ -103,7 +104,7 @@ export default function Sublimaciones({ items, administrador, error }: {
     </div>
 
     {!filtrados.length
-      ? <p className="text-sm text-gray-500">{items.length ? 'No se encontraron artículos.' : 'Todavía no hay artículos cargados.'}</p>
+      ? <p className="text-sm text-gray-500">{registros.length ? 'No se encontraron artículos.' : 'Todavía no hay artículos cargados.'}</p>
       : <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50"><tr>

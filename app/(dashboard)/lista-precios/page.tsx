@@ -6,12 +6,16 @@ import CategoriasVehiculos from './categorias-vehiculos'
 
 import { listarListaPrecios } from '@/lib/services/lista-precios'
 import { listarSublimaciones } from '@/lib/services/sublimaciones'
+import { listarPolarizados } from '@/lib/services/polarizados'
+import { listarCategorias } from '@/lib/services/categorias-vehiculos'
 import { esAdministrador } from '@/lib/auth/roles'
 
 export default async function ListaPreciosPage() {
-  const [resultado, sublimaciones, administrador] = await Promise.all([
+  const [resultado, sublimaciones, polarizados, categorias, administrador] = await Promise.all([
     listarListaPrecios(),
     listarSublimaciones(),
+    listarPolarizados(),
+    listarCategorias(),
     esAdministrador(),
   ])
 
@@ -40,7 +44,7 @@ export default async function ListaPreciosPage() {
         {
           id: 'polarizados',
           titulo: 'Lista de precios polarizados',
-          contenido: <ListaPolarizados />,
+          contenido: <ListaPolarizados iniciales={polarizados.data ?? []} administrador={administrador} error={polarizados.error} />,
         },
         {
           id: 'sublimaciones',
@@ -56,7 +60,7 @@ export default async function ListaPreciosPage() {
         {
           id: 'categorias',
           titulo: 'Categorías de vehículos',
-          contenido: <CategoriasVehiculos />,
+          contenido: <CategoriasVehiculos iniciales={categorias.data ?? []} administrador={administrador} error={categorias.error} />,
         },
       ]}
     />

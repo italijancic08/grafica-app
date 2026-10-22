@@ -30,7 +30,14 @@ export async function listarPolarizados() {
     .order('vehiculo')
 
   if (error) return { error: error.message }
-  return { data: (data ?? []) as Polarizado[] }
+  return { data: (data ?? []).map(fila => ({
+    id: fila.id as string,
+    titulo: fila.titulo as string,
+    vehiculo: fila.vehiculo as string,
+    categoria: fila.categoria as string | null,
+    efectivo: Number(fila.efectivo),
+    recargoTarjeta: Number(fila.recargo_tarjeta),
+  })) as Polarizado[] }
 }
 
 export async function guardarPolarizado(
@@ -46,9 +53,13 @@ export async function guardarPolarizado(
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const datos = {
-    ...parsed.data,
+    titulo: parsed.data.titulo,
+    vehiculo: parsed.data.vehiculo,
     categoria: parsed.data.categoria || null,
+    efectivo: parsed.data.efectivo,
+    recargo_tarjeta: parsed.data.recargoTarjeta,
     modificado_en: new Date().toISOString(),
   }
 
@@ -62,6 +73,7 @@ export async function guardarPolarizado(
     if (error) return { error: error.message }
 
     await registrarAuditoria({
+      usuarioId: user?.id,
       accion: 'crear',
       entidad: 'polarizados',
       entidadId: data.id,
@@ -80,6 +92,7 @@ export async function guardarPolarizado(
     if (error) return { error: error.message }
 
     await registrarAuditoria({
+      usuarioId: user?.id,
       accion: 'editar',
       entidad: 'polarizados',
       entidadId: id,
@@ -100,6 +113,7 @@ export async function borrarPolarizado(id: string) {
   }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const { error } = await supabase
     .from('lista_polarizados')
     .delete()
@@ -108,6 +122,7 @@ export async function borrarPolarizado(id: string) {
   if (error) return { error: error.message }
 
   await registrarAuditoria({
+    usuarioId: user?.id,
     accion: 'eliminar',
     entidad: 'polarizados',
     entidadId: id,
