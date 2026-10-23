@@ -61,7 +61,7 @@ export default function BuscadorFiltrosTrabajos({
             onChange={(e) => setValor(e.target.value)}
             placeholder="Buscar por número, cliente, teléfono, descripción..."
             aria-label="Buscar trabajos"
-            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-500"
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-500 [&::-webkit-search-cancel-button]:appearance-none"
           />
           {valor && (
             <button
