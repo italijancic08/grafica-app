@@ -3,6 +3,8 @@ import { listarTrabajos } from '@/lib/services/trabajos'
 import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+import { filtrarTrabajosPorBusqueda } from '@/lib/utils/buscar-trabajos'
+import BuscadorFiltrosTrabajos from './buscador-filtros-trabajos'
 
 function badgeFinanciero(estado: string) {
   const colores: Record<string, string> = {
@@ -16,25 +18,26 @@ function badgeFinanciero(estado: string) {
 export default async function TrabajosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string }>
+  searchParams: Promise<{ estado?: string; q?: string }>
 }) {
-  const { estado } = await searchParams
+  const { estado, q } = await searchParams
+  const busqueda = (q ?? '').trim()
   // Si el parámetro no es un estado válido, se muestran todos
   const estadoFiltro = ESTADOS_DE_TRABAJO.find((e) => e === estado) ?? null
 
   // Los presupuestos y rechazados se ven en /presupuestos
   const { data: todos, error } = await listarTrabajos(ESTADOS_DE_TRABAJO)
+
+  // La búsqueda se aplica primero; los contadores de estado reflejan sus resultados
+  const coincidentes = busqueda && todos ? filtrarTrabajosPorBusqueda(todos, busqueda) : todos
   const trabajos = estadoFiltro
-    ? todos?.filter((t) => t.estado_operativo === estadoFiltro)
-    : todos
+    ? coincidentes?.filter((t) => t.estado_operativo === estadoFiltro)
+    : coincidentes
 
-  const cantidad = (e: string) =>
-    todos?.filter((t) => t.estado_operativo === e).length ?? 0
-
-  const pastilla = (activo: boolean) =>
-    `rounded-md px-3 py-1.5 text-sm font-medium ${
-      activo ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-    }`
+  const conteos: Record<string, number> = {}
+  for (const e of ESTADOS_DE_TRABAJO) {
+    conteos[e] = coincidentes?.filter((t) => t.estado_operativo === e).length ?? 0
+  }
 
   return (
     <div className="p-6">
@@ -48,16 +51,17 @@ export default async function TrabajosPage({
         </Link>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/trabajos" className={pastilla(!estadoFiltro)}>
-          Todos ({todos?.length ?? 0})
-        </Link>
-        {ESTADOS_DE_TRABAJO.map((e) => (
-          <Link key={e} href={`/trabajos?estado=${e}`} className={pastilla(estadoFiltro === e)}>
-            {ETIQUETAS_ESTADO_OPERATIVO[e]} ({cantidad(e)})
-          </Link>
-        ))}
-      </div>
+      <BuscadorFiltrosTrabajos
+        estadoActivo={estadoFiltro}
+        conteos={conteos}
+        total={coincidentes?.length ?? 0}
+      />
+
+      {(busqueda || estadoFiltro) && trabajos && (
+        <p className="mb-3 text-sm text-gray-500">
+          {trabajos.length} {trabajos.length === 1 ? 'resultado' : 'resultados'}
+        </p>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -75,10 +79,18 @@ export default async function TrabajosPage({
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
-              <tr><td colSpan={8} className="px-4 py-3 text-red-600">{error}</td></tr>
+              <tr>
+                <td colSpan={8} className="px-4 py-3 text-red-600">{error}</td>
+              </tr>
             )}
             {trabajos?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-3 text-gray-500">{estadoFiltro ? 'No hay trabajos en este estado.' : 'Sin trabajos todavía.'}</td></tr>
+              <tr>
+                <td colSpan={8} className="px-4 py-3 text-gray-500">
+                  {estadoFiltro || busqueda
+                    ? 'No hay trabajos que coincidan con la búsqueda o los filtros.'
+                    : 'Sin trabajos todavía.'}
+                </td>
+              </tr>
             )}
             {trabajos?.map((t) => (
               <tr key={t.id} className="hover:bg-gray-50">
