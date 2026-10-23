@@ -11,6 +11,7 @@ export interface Auditoria {
 export const ETIQUETAS_ACCION: Record<string, string> = {
   crear: 'Alta',
   editar: 'Edición',
+  eliminar: 'Eliminación',
   cambiar_estado: 'Cambio de estado',
   registrar_pago: 'Pago registrado',
   editar_pago: 'Pago editado',

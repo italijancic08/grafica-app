@@ -34,7 +34,7 @@ export default async function StockPage() {
               <tr><td colSpan={5} className="px-4 py-3 text-gray-500">Sin materiales cargados.</td></tr>
             )}
             {materiales?.map((m) => (
-              <FilaMaterial key={m.id} material={m} />
+              <FilaMaterial key={m.id} material={m} administrador={administrador} />
             ))}
           </tbody>
         </table>

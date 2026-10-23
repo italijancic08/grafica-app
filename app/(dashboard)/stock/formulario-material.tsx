@@ -28,11 +28,6 @@ export default function FormularioMaterial() {
     e.preventDefault()
     setError(null)
 
-    if (costoUnitarioCalculado === null) {
-      setError('Completá el precio de la bobina y cuánto rinde para calcular el costo por m2.')
-      return
-    }
-
     setCargando(true)
 
     try {
@@ -41,7 +36,7 @@ export default function FormularioMaterial() {
         unidad_medida: unidadMedida,
         cantidad_actual: Number(cantidadActual),
         stock_minimo: Number(stockMinimo),
-        costo_unitario: costoUnitarioCalculado,
+        costo_unitario: costoUnitarioCalculado ?? 0,
       })
 
       if ("error" in resultado && resultado.error) {
@@ -122,7 +117,7 @@ export default function FormularioMaterial() {
       </div>
 
       <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-        <p className="mb-2 text-xs font-medium text-gray-700">Costo (calculado a partir de la bobina)</p>
+        <p className="mb-2 text-xs font-medium text-gray-700">Costo (opcional, se calcula a partir de la bobina)</p>
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">Precio de la bobina completa</label>
@@ -130,7 +125,6 @@ export default function FormularioMaterial() {
               type="number"
               step="0.01"
               min="0"
-              required
               value={precioBobina}
               onChange={(e) => setPrecioBobina(e.target.value)}
               placeholder="Ej: 45000"
@@ -145,7 +139,6 @@ export default function FormularioMaterial() {
               type="number"
               step="0.01"
               min="0"
-              required
               value={rendimientoBobina}
               onChange={(e) => setRendimientoBobina(e.target.value)}
               placeholder="Ej: 30"
