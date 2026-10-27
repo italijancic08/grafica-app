@@ -47,7 +47,7 @@ export default async function ParaRetirarPage() {
                 <td className="px-4 py-2 font-medium">
                   <Link href={`/trabajos/${t.id}`} className="hover:underline">{t.numero}</Link>
                 </td>
-                <td className="px-4 py-2">{t.clientes?.nombre_razon_social}</td>
+                <td className="px-4 py-2">{t.clientes?.nombre_razon_social ?? t.empresas_clientes?.nombre}</td>
                 <td className="px-4 py-2 max-w-xs truncate">{t.descripcion}</td>
                 <td className="px-4 py-2">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</td>
                 <td className="px-4 py-2">

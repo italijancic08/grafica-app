@@ -61,7 +61,7 @@ export async function crearTrabajo(input: TrabajoInput) {
   const { data, error } = await supabase
     .from('trabajos')
     .insert({
-      cliente_id: parsed.data.cliente_id,
+      cliente_id: parsed.data.cliente_id || null,
       empresa_cliente_id: parsed.data.empresa_cliente_id || null,
       descripcion: parsed.data.descripcion,
       rubro: parsed.data.rubro ?? null,
@@ -145,6 +145,17 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
 
   const esPresupuesto = trabajoAnterior.estado_operativo === 'PRESUPUESTO'
 
+  // Todo trabajo necesita un cliente o una empresa (o los dos)
+  const clienteFinal = esPresupuesto && parsed.data.cliente_id !== undefined
+    ? parsed.data.cliente_id || null
+    : trabajoAnterior.cliente_id
+  const empresaFinal = parsed.data.empresa_cliente_id !== undefined
+    ? parsed.data.empresa_cliente_id || null
+    : trabajoAnterior.empresa_cliente_id
+  if (!clienteFinal && !empresaFinal) {
+    return { error: 'Seleccioná un cliente o una empresa.' }
+  }
+
   // Un precio cero solo está permitido para clientes o empresas autorizados.
   // La base de datos verifica el permiso también en el momento de guardar.
   if (!esPresupuesto && calculo.precioFinal === 0) {
@@ -188,7 +199,7 @@ export async function actualizarTrabajo(trabajoId: string, input: TrabajoEditInp
     .from('trabajos')
     .update({
       // El cliente solo se puede reasignar mientras es presupuesto
-      ...(esPresupuesto && parsed.data.cliente_id ? { cliente_id: parsed.data.cliente_id } : {}),
+      ...(esPresupuesto && parsed.data.cliente_id !== undefined ? { cliente_id: parsed.data.cliente_id || null } : {}),
       // La empresa se puede cambiar en cualquier momento (vacío = a nombre del cliente)
       ...(parsed.data.empresa_cliente_id !== undefined
         ? { empresa_cliente_id: parsed.data.empresa_cliente_id || null }
@@ -325,7 +336,7 @@ export async function listarConDeuda() {
 
   const { data, error } = await supabase
     .from('trabajos_con_saldo')
-    .select('*, clientes(nombre_razon_social, telefono, whatsapp)')
+    .select('*, clientes(nombre_razon_social, telefono, whatsapp), empresas_clientes(nombre, telefono)')
     .gt('saldo', 0)
     .eq('estado_operativo', 'RETIRADO')
     .order('saldo', { ascending: false })
@@ -457,7 +468,7 @@ export async function listarTurnos() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('turnos')
-    .select('id, trabajo_id, fecha, hora, estado, notas, instalador_id, instaladores(id, nombre), trabajos!inner(id, numero, descripcion, precio_final, estado_operativo, requiere_turno, clientes(nombre_razon_social, telefono))')
+    .select('id, trabajo_id, fecha, hora, estado, notas, instalador_id, instaladores(id, nombre), trabajos!inner(id, numero, descripcion, precio_final, estado_operativo, requiere_turno, clientes(nombre_razon_social, telefono), empresas_clientes(nombre, telefono))')
     .eq('trabajos.requiere_turno', true)
     .not('trabajos.estado_operativo', 'in', '(PRESUPUESTO,RECHAZADO)')
     .order('fecha', { ascending: true, nullsFirst: true })
@@ -466,7 +477,10 @@ export async function listarTurnos() {
   // Normalizar relaciones que Supabase tipa como arrays sin un esquema generado.
   const turnos = (data ?? []).map((turno) => {
     const trabajo = Array.isArray(turno.trabajos) ? turno.trabajos[0] : turno.trabajos
-    const cliente = trabajo && (Array.isArray(trabajo.clientes) ? trabajo.clientes[0] : trabajo.clientes)
+    const clienteDirecto = trabajo && (Array.isArray(trabajo.clientes) ? trabajo.clientes[0] : trabajo.clientes)
+    const empresa = trabajo && (Array.isArray(trabajo.empresas_clientes) ? trabajo.empresas_clientes[0] : trabajo.empresas_clientes)
+    // Si el trabajo ingresó solo por una empresa, se muestran los datos de la empresa
+    const cliente = clienteDirecto ?? (empresa ? { nombre_razon_social: empresa.nombre, telefono: empresa.telefono } : null)
     const instalador = Array.isArray(turno.instaladores) ? turno.instaladores[0] : turno.instaladores
     return {
       ...turno,

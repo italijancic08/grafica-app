@@ -25,7 +25,7 @@ export type RubroTrabajo =
 export interface Trabajo {
   id: string
   numero: string
-  cliente_id: string
+  cliente_id: string | null
   empresa_cliente_id: string | null
   descripcion: string
   rubro: RubroTrabajo | null

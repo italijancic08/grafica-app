@@ -48,7 +48,7 @@ export default async function TercerizadosPage() {
                       {tc.trabajos?.numero}
                     </Link>
                   </td>
-                  <td className="px-4 py-2">{tc.trabajos?.clientes?.nombre_razon_social}</td>
+                  <td className="px-4 py-2">{tc.trabajos?.clientes?.nombre_razon_social ?? tc.trabajos?.empresas_clientes?.nombre}</td>
                   <td className="px-4 py-2">{tc.proveedor}</td>
                   <td className="px-4 py-2 font-mono text-xs">{tc.codigo_seguimiento || '—'}</td>
                   <td className="px-4 py-2">{formatearFecha(tc.fecha_envio)}</td>

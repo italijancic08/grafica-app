@@ -54,7 +54,7 @@ export default function FormularioTrabajo({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!clienteId) { setError('Seleccioná un cliente'); return }
+    if (!clienteId && !empresaId) { setError('Seleccioná un cliente o una empresa'); return }
     if (requiereTurno && turnoFecha && !turnoHora) {
       setError('Si cargás la fecha del turno, también indicá la hora.'); return
     }
@@ -92,20 +92,25 @@ export default function FormularioTrabajo({
   return (
     <form onSubmit={handleSubmit} className="max-w-xl space-y-4 rounded-lg border border-gray-200 bg-white p-6">
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Cliente</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Cliente
+          <span className="ml-1 font-normal text-gray-400">(opcional si elegís una empresa)</span>
+        </label>
         <SelectorCliente clientes={clientes} clienteId={clienteId} onChange={setClienteId} />
       </div>
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">
           Ingresa por parte de
-          <span className="ml-1 font-normal text-gray-400">(opcional)</span>
+          <span className="ml-1 font-normal text-gray-400">
+            {clienteId ? '(opcional)' : '(obligatorio si no elegís un cliente)'}
+          </span>
         </label>
         <SelectorEmpresa
           empresas={empresas}
           valor={empresaId}
           onChange={setEmpresaId}
-          etiquetaVacia="El cliente (a su nombre)"
+          etiquetaVacia={clienteId ? 'El cliente (a su nombre)' : 'Seleccionar empresa...'}
           destacadaId={empresaDelCliente}
           permitirCrear
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"

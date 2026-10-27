@@ -68,8 +68,8 @@ export default async function PresupuestosPage({
                 </td>
                 <td className="px-4 py-2">{formatearFecha(p.fecha_entrada)}</td>
                 <td className="px-4 py-2">
-                  {p.clientes?.nombre_razon_social}
-                  {p.empresas_clientes && (
+                  {p.clientes?.nombre_razon_social ?? p.empresas_clientes?.nombre}
+                  {p.clientes && p.empresas_clientes && (
                     <span className="block text-xs text-gray-400">por parte de {p.empresas_clientes.nombre}</span>
                   )}
                 </td>

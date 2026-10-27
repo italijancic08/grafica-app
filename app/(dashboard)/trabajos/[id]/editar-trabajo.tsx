@@ -30,7 +30,7 @@ export default function EditarTrabajo({
 }: {
   trabajoId: string
   estado: EstadoOperativo
-  clienteId: string
+  clienteId: string | null
   clientes: Cliente[]
   empresaClienteId: string | null
   empresas: EmpresaCliente[]
@@ -54,7 +54,7 @@ export default function EditarTrabajo({
 
   const [editando, setEditando] = useState(false)
 
-  const [clienteForm, setClienteForm] = useState(clienteId)
+  const [clienteForm, setClienteForm] = useState(clienteId ?? '')
   const [empresaForm, setEmpresaForm] = useState(empresaClienteId ?? '')
   const [descripcionForm, setDescripcionForm] = useState(descripcion)
   const [rubroForm, setRubroForm] = useState<RubroTrabajo | ''>(rubro ?? '')
@@ -73,7 +73,7 @@ export default function EditarTrabajo({
     : null
 
   function handleCancelar() {
-    setClienteForm(clienteId)
+    setClienteForm(clienteId ?? '')
     setEmpresaForm(empresaClienteId ?? '')
     setDescripcionForm(descripcion)
     setRubroForm(rubro ?? '')
@@ -91,8 +91,8 @@ export default function EditarTrabajo({
     e.preventDefault()
     setError(null)
 
-    if (esPresupuesto && !clienteForm) {
-      setError('Seleccioná un cliente')
+    if (esPresupuesto && !clienteForm && !empresaForm) {
+      setError('Seleccioná un cliente o una empresa')
       return
     }
 
@@ -136,7 +136,10 @@ export default function EditarTrabajo({
         <form onSubmit={handleGuardar} className="space-y-3">
           {esPresupuesto && (
             <div className="max-w-xl">
-              <label className="mb-1 block text-xs font-medium text-gray-700">Cliente</label>
+              <label className="mb-1 block text-xs font-medium text-gray-700">
+                Cliente
+                <span className="ml-1 font-normal text-gray-400">(opcional si elegís una empresa)</span>
+              </label>
               <SelectorCliente clientes={clientes} clienteId={clienteForm} onChange={setClienteForm} />
             </div>
           )}
@@ -147,7 +150,7 @@ export default function EditarTrabajo({
               empresas={empresas}
               valor={empresaForm}
               onChange={setEmpresaForm}
-              etiquetaVacia="El cliente (a su nombre)"
+              etiquetaVacia={clienteForm ? 'El cliente (a su nombre)' : 'Seleccionar empresa...'}
               destacadaId={clientes.find((c) => c.id === clienteForm)?.empresa_cliente_id ?? undefined}
               permitirCrear
               className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm sm:w-80"

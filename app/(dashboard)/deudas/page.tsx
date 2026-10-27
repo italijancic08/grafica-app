@@ -49,8 +49,8 @@ export default async function DeudasPage() {
                 <td className="px-4 py-2 font-medium">
                   <Link href={`/trabajos/${t.id}`} className="hover:underline">{t.numero}</Link>
                 </td>
-                <td className="px-4 py-2">{t.clientes?.nombre_razon_social}</td>
-                <td className="px-4 py-2">{t.clientes?.telefono ?? t.clientes?.whatsapp ?? '—'}</td>
+                <td className="px-4 py-2">{t.clientes?.nombre_razon_social ?? t.empresas_clientes?.nombre}</td>
+                <td className="px-4 py-2">{t.clientes?.telefono ?? t.clientes?.whatsapp ?? t.empresas_clientes?.telefono ?? '—'}</td>
                 
 <td className="px-4 py-2">
   <span className="text-sm font-medium text-orange-600">

@@ -76,7 +76,7 @@ export async function obtenerRankingClientes({ desde, hasta }: FiltrosReporte, l
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('trabajos')
-    .select('cliente_id, precio_final, clientes(nombre_razon_social)')
+    .select('cliente_id, empresa_cliente_id, precio_final, clientes(nombre_razon_social), empresas_clientes(nombre)')
     .gte('fecha_entrada', desde)
     .lte('fecha_entrada', hasta)
     .not('estado_operativo', 'in', '(CANCELADO,PRESUPUESTO,RECHAZADO)')
@@ -86,10 +86,13 @@ export async function obtenerRankingClientes({ desde, hasta }: FiltrosReporte, l
   const porCliente = new Map<string, { nombre: string; cantidad: number; total: number }>()
   for (const t of data ?? []) {
     const cliente = Array.isArray(t.clientes) ? t.clientes[0] : t.clientes
-    const actual = porCliente.get(t.cliente_id) ?? { nombre: cliente?.nombre_razon_social ?? '—', cantidad: 0, total: 0 }
+    const empresa = Array.isArray(t.empresas_clientes) ? t.empresas_clientes[0] : t.empresas_clientes
+    // Los trabajos sin cliente se agrupan por empresa
+    const clave = t.cliente_id ?? `empresa:${t.empresa_cliente_id}`
+    const actual = porCliente.get(clave) ?? { nombre: cliente?.nombre_razon_social ?? empresa?.nombre ?? '—', cantidad: 0, total: 0 }
     actual.cantidad += 1
     actual.total += t.precio_final
-    porCliente.set(t.cliente_id, actual)
+    porCliente.set(clave, actual)
   }
 
   const filas = Array.from(porCliente.values())

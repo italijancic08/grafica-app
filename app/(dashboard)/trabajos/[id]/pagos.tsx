@@ -15,7 +15,7 @@ export default function SeccionPagos({
   mesesCerrados = [],
 }: {
   trabajoId: string
-  clienteId: string
+  clienteId: string | null
   saldo: number
   pagos: Pago[]
   mesesCerrados?: string[]

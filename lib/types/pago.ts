@@ -4,7 +4,7 @@ export type TipoTarjeta = 'debito' | 'credito'
 export interface Pago {
   id: string
   trabajo_id: string
-  cliente_id: string
+  cliente_id: string | null
   fecha: string
   hora: string
   importe: number

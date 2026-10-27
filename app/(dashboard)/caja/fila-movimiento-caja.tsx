@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { actualizarMovimientoCaja } from '@/lib/services/caja'
+import { actualizarMovimientoCaja, eliminarMovimientoCaja } from '@/lib/services/caja'
 import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
 import { ETIQUETAS_RUBRO, type Rubro, type MovimientoCaja, type TipoMovimientoCaja } from '@/lib/types/caja'
 import { formatearMoneda, diaDelMes } from '@/lib/utils/formato'
@@ -11,9 +11,11 @@ import ComprobanteMovimiento from './comprobante-movimiento'
 export default function FilaMovimientoCaja({
   movimiento,
   bloqueado = false,
+  administrador = false,
 }: {
   movimiento: MovimientoCaja
   bloqueado?: boolean
+  administrador?: boolean
 }) {
   const router = useRouter()
   const [editando, setEditando] = useState(false)
@@ -25,6 +27,33 @@ export default function FilaMovimientoCaja({
   const [rubro, setRubro] = useState<Rubro>(movimiento.rubro ?? 'otros_varios')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+
+  async function handleEliminar() {
+    setErrorEliminar(null)
+    setEliminando(true)
+
+    try {
+      const resultado = await eliminarMovimientoCaja(movimiento.id)
+
+      if (resultado.error) {
+        setErrorEliminar(resultado.error)
+        setConfirmandoEliminar(false)
+        return
+      }
+
+      router.refresh()
+    } catch (err) {
+      console.error(err)
+      setErrorEliminar('Ocurrió un error inesperado.')
+      setConfirmandoEliminar(false)
+    } finally {
+      setEliminando(false)
+    }
+  }
 
   async function handleGuardar(e: React.FormEvent) {
     e.preventDefault()
@@ -156,14 +185,48 @@ export default function FilaMovimientoCaja({
         <span className={`mr-3 font-medium ${movimiento.tipo === 'ingreso' ? 'text-green-700' : 'text-red-600'}`}>
           {movimiento.tipo === 'ingreso' ? '+' : '-'}{formatearMoneda(movimiento.monto)}
         </span>
-        {!bloqueado && (
-          <button
-            onClick={() => setEditando(true)}
-            className="text-xs font-medium text-gray-600 hover:underline"
-          >
-            Editar
-          </button>
+        {administrador && !bloqueado && (
+          confirmandoEliminar ? (
+            <span className="inline-flex items-center gap-2 text-xs">
+              <span className="text-gray-600">¿Eliminar?</span>
+              <button
+                type="button"
+                onClick={handleEliminar}
+                disabled={eliminando}
+                className="font-medium text-red-600 hover:underline disabled:opacity-50"
+              >
+                {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmandoEliminar(false)}
+                disabled={eliminando}
+                className="font-medium text-gray-900 hover:underline disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={() => setEditando(true)}
+                className="text-xs font-medium text-gray-600 hover:underline"
+              >
+                Editar
+              </button>
+              {/* Los movimientos que vienen de un pago se administran desde el trabajo */}
+              {!movimiento.pago_id && (
+                <button
+                  onClick={() => setConfirmandoEliminar(true)}
+                  className="ml-3 text-xs font-medium text-red-600 hover:underline"
+                >
+                  Eliminar
+                </button>
+              )}
+            </>
+          )
         )}
+        {errorEliminar && <p className="mt-1 text-xs text-red-600">{errorEliminar}</p>}
       </td>
     </tr>
   )

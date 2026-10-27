@@ -105,7 +105,7 @@ export default async function CajaPage({
               <tr><td colSpan={7} className="px-4 py-3 text-gray-500">Sin movimientos en este mes.</td></tr>
             )}
             {movimientos?.map((m) => (
-              <FilaMovimientoCaja key={m.id} movimiento={m} bloqueado={bloqueado} />
+              <FilaMovimientoCaja key={m.id} movimiento={m} bloqueado={bloqueado} administrador={administrador} />
             ))}
           </tbody>
         </table>

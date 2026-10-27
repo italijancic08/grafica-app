@@ -5,6 +5,49 @@ import { generarPdfComprobante } from '@/lib/pdf/comprobante'
 import { revalidatePath } from 'next/cache'
 import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 
+type DatosDestinatario = {
+  nombre_razon_social: string
+  cuit_cuil: string | null
+  domicilio: string | null
+  telefono: string | null
+  whatsapp: string | null
+  email: string | null
+}
+
+// Quién figura en el comprobante: el cliente del trabajo o, si el trabajo
+// ingresó solo por una empresa (sin cliente), los datos de esa empresa.
+function destinatarioDelTrabajo(trabajo: {
+  clientes?: unknown
+  empresas_clientes?: unknown
+}): DatosDestinatario | null {
+  const cliente = (Array.isArray(trabajo.clientes) ? trabajo.clientes[0] : trabajo.clientes) as
+    DatosDestinatario | null | undefined
+  if (cliente) return cliente
+
+  const empresa = (Array.isArray(trabajo.empresas_clientes)
+    ? trabajo.empresas_clientes[0]
+    : trabajo.empresas_clientes) as
+    | {
+        nombre: string
+        cuit: string | null
+        domicilio: string | null
+        telefono: string | null
+        email: string | null
+      }
+    | null
+    | undefined
+  if (!empresa) return null
+
+  return {
+    nombre_razon_social: empresa.nombre,
+    cuit_cuil: empresa.cuit,
+    domicilio: empresa.domicilio,
+    telefono: empresa.telefono,
+    whatsapp: null,
+    email: empresa.email,
+  }
+}
+
 export async function listarComprobantesDeTrabajo(
   trabajoId: string
 ) {
@@ -70,6 +113,13 @@ export async function generarComprobante(
           telefono,
           whatsapp,
           email
+        ),
+        empresas_clientes(
+          nombre,
+          cuit,
+          domicilio,
+          telefono,
+          email
         )
       `)
       .eq('id', trabajoId)
@@ -82,14 +132,12 @@ export async function generarComprobante(
     }
   }
 
-  const cliente = Array.isArray(trabajo.clientes)
-    ? trabajo.clientes[0]
-    : trabajo.clientes
+  const cliente = destinatarioDelTrabajo(trabajo)
 
   if (!cliente) {
     return {
       error:
-        'El trabajo no tiene un cliente asociado',
+        'El trabajo no tiene un cliente ni una empresa asociados',
     }
   }
 
@@ -279,6 +327,13 @@ async function regenerarPdfDeFactura(
         telefono,
         whatsapp,
         email
+      ),
+      empresas_clientes(
+        nombre,
+        cuit,
+        domicilio,
+        telefono,
+        email
       )
     `)
     .eq('id', factura.trabajo_id)
@@ -288,12 +343,10 @@ async function regenerarPdfDeFactura(
     return { error: 'No se encontró el trabajo del comprobante.' }
   }
 
-  const cliente = Array.isArray(trabajo.clientes)
-    ? trabajo.clientes[0]
-    : trabajo.clientes
+  const cliente = destinatarioDelTrabajo(trabajo)
 
   if (!cliente) {
-    return { error: 'El trabajo no tiene un cliente asociado.' }
+    return { error: 'El trabajo no tiene un cliente ni una empresa asociados.' }
   }
 
   const { data: empresa } = await supabase

@@ -98,8 +98,8 @@ export default async function TrabajosPage({
                   <Link href={`/trabajos/${t.id}`} className="hover:underline">{t.numero}</Link>
                 </td>
                 <td className="px-4 py-2">
-                  {t.clientes?.nombre_razon_social}
-                  {t.empresas_clientes && (
+                  {t.clientes?.nombre_razon_social ?? t.empresas_clientes?.nombre}
+                  {t.clientes && t.empresas_clientes && (
                     <span className="block text-xs text-gray-400">por parte de {t.empresas_clientes.nombre}</span>
                   )}
                 </td>

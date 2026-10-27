@@ -13,7 +13,8 @@ export const TIPOS_DESCUENTO = ['PORCENTAJE', 'MONTO'] as const
 // Alta: todo trabajo nace como PRESUPUESTO. El rubro y el precio son
 // opcionales en esta fase; se exigen recién al aceptarlo.
 export const trabajoSchema = z.object({
-  cliente_id: z.uuid('Seleccioná un cliente'),
+  // El cliente es opcional si el trabajo ingresa por parte de una empresa
+  cliente_id: z.uuid('Cliente inválido').optional().or(z.literal('')),
   empresa_cliente_id: z.uuid('Empresa inválida').optional().or(z.literal('')),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),
@@ -28,6 +29,9 @@ export const trabajoSchema = z.object({
   turno_fecha: z.string().optional(),
   turno_hora: z.string().optional(),
   instalador_id: z.uuid().optional().or(z.literal('')),
+}).refine((datos) => !!datos.cliente_id || !!datos.empresa_cliente_id, {
+  message: 'Seleccioná un cliente o una empresa',
+  path: ['cliente_id'],
 })
 
 export type TrabajoInput = z.infer<typeof trabajoSchema>
@@ -35,7 +39,8 @@ export type TrabajoInput = z.infer<typeof trabajoSchema>
 // Campos editables desde la ficha. El cliente solo se puede cambiar
 // mientras el trabajo siga en fase de presupuesto (lo valida el servicio).
 export const trabajoEditSchema = z.object({
-  cliente_id: z.uuid('Seleccioná un cliente').optional(),
+  // Vacío = sin cliente (solo válido si el trabajo queda a nombre de una empresa)
+  cliente_id: z.uuid('Cliente inválido').optional().or(z.literal('')),
   empresa_cliente_id: z.uuid('Empresa inválida').optional().or(z.literal('')),
   descripcion: z.string().min(3, 'La descripción es obligatoria'),
   rubro: z.enum(RUBROS_TRABAJO, { error: 'Rubro inválido' }).optional(),

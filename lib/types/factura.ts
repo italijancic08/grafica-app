@@ -7,7 +7,7 @@ export type TipoComprobante =
 export interface Factura {
   id: string
   trabajo_id: string
-  cliente_id: string
+  cliente_id: string | null
 
   tipo_comprobante: TipoComprobante
   numero: string | null

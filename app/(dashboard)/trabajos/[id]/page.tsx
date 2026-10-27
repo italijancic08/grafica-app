@@ -80,8 +80,10 @@ if (esPresupuesto) {
         )}
       </div>
       <p className="mb-6 text-sm text-gray-500">
-        {t.clientes?.nombre_razon_social} · {t.clientes?.telefono}
-        {t.empresas_clientes && ` · Por parte de ${t.empresas_clientes.nombre}`}
+        {t.clientes
+          ? `${t.clientes.nombre_razon_social} · ${t.clientes.telefono ?? ''}`
+          : t.empresas_clientes?.nombre}
+        {t.clientes && t.empresas_clientes && ` · Por parte de ${t.empresas_clientes.nombre}`}
       </p>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

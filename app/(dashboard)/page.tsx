@@ -187,32 +187,60 @@ export default async function DashboardPage() {
 
       {/* Tarjetas principales */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {/* Balance del mes */}
-        <Link
-          href="/caja"
-          className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
-        >
-          <p className="text-xs font-medium text-gray-600">
-            Balance del mes
-          </p>
-
-          <p
-            className={`mt-1 text-2xl font-semibold ${
-              resumen.cajaMes.balance >= 0
-                ? 'text-green-700'
-                : 'text-red-600'
-            }`}
+        {administrador ? (
+          /* Balance del mes (solo administrador) */
+          <Link
+            href="/caja"
+            className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
           >
-            {formatearMoneda(resumen.cajaMes.balance)}
-          </p>
-
-          <div className="mt-2 flex flex-wrap items-baseline gap-2 border-t border-gray-300/60 pt-2">
             <p className="text-xs font-medium text-gray-600">
-              Caja física:
+              Balance del mes
             </p>
 
             <p
-              className={`text-sm font-semibold ${
+              className={`mt-1 text-2xl font-semibold ${
+                resumen.cajaMes.balance >= 0
+                  ? 'text-green-700'
+                  : 'text-red-600'
+              }`}
+            >
+              {formatearMoneda(resumen.cajaMes.balance)}
+            </p>
+
+            <div className="mt-2 flex flex-wrap items-baseline gap-2 border-t border-gray-300/60 pt-2">
+              <p className="text-xs font-medium text-gray-600">
+                Caja física:
+              </p>
+
+              <p
+                className={`text-sm font-semibold ${
+                  resumen.cajaMes.cajaFisica < umbral
+                    ? 'text-red-600'
+                    : 'text-green-700'
+                }`}
+              >
+                {formatearMoneda(resumen.cajaMes.cajaFisica)}
+              </p>
+            </div>
+
+            {resumen.cajaMes.cajaFisica < umbral && (
+              <p className="mt-1 text-xs text-red-600">
+                Poco dinero en la caja
+              </p>
+            )}
+          </Link>
+        ) : (
+          /* Empleados: solo el dinero que hay en la caja */
+          <Link
+            href="/caja"
+            className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
+          >
+            <p className="text-xs font-medium text-gray-600">
+              Dinero en caja
+            </p>
+
+            <p
+              className={`mt-1 text-2xl font-semibold ${
                 resumen.cajaMes.cajaFisica < umbral
                   ? 'text-red-600'
                   : 'text-green-700'
@@ -220,14 +248,14 @@ export default async function DashboardPage() {
             >
               {formatearMoneda(resumen.cajaMes.cajaFisica)}
             </p>
-          </div>
 
-          {resumen.cajaMes.cajaFisica < umbral && (
-            <p className="mt-1 text-xs text-red-600">
-              Poco dinero en la caja
-            </p>
-          )}
-        </Link>
+            {resumen.cajaMes.cajaFisica < umbral && (
+              <p className="mt-1 text-xs text-red-600">
+                Poco dinero en la caja
+              </p>
+            )}
+          </Link>
+        )}
 
         {/* deudores */}
         <Link

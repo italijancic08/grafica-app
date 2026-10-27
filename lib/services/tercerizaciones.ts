@@ -17,7 +17,7 @@ export async function listarTercerizaciones() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tercerizaciones')
-    .select('*, trabajos(numero, descripcion, cliente_id, clientes(nombre_razon_social))')
+    .select('*, trabajos(numero, descripcion, cliente_id, clientes(nombre_razon_social), empresas_clientes(nombre))')
     .order('fecha_envio', { ascending: false })
 
   if (error) return { error: error.message }
