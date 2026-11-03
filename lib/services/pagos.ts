@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { pagoSchema, pagoEditSchema, type PagoInput, type PagoEditInput } from '@/lib/validations/pago'
 import { revalidatePath } from 'next/cache'
 import { registrarAuditoria } from '@/lib/services/auditoria'
+import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
 
 export async function listarPagosDeTrabajo(trabajoId: string) {
   const supabase = await createClient()
@@ -147,6 +148,77 @@ export async function actualizarPago(pagoId: string, input: PagoEditInput) {
 
   revalidatePath(`/trabajos/${pagoActual.trabajo_id}`)
   revalidatePath('/caja')
+  return { success: true }
+}
+
+// Elimina un pago de un trabajo y el movimiento de caja que generó. Solo
+// administrador. No permite borrar pagos de un mes de caja ya cerrado.
+// El saldo del trabajo se recalcula solo (vista trabajos_con_saldo).
+export async function eliminarPago(pagoId: string) {
+  const sinPermiso = await errorSiNoEsAdministrador()
+  if (sinPermiso) return { error: sinPermiso.error }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: pago, error: errorPago } = await supabase
+    .from('pagos')
+    .select('id, trabajo_id, importe, medio_pago, detalle_medio_pago, fecha, comprobante_url')
+    .eq('id', pagoId)
+    .single()
+
+  if (errorPago || !pago) return { error: 'No se encontró el pago' }
+
+  // Se revisa la fecha del pago y la del movimiento de caja asociado
+  const { data: movimientos } = await supabase
+    .from('caja_movimientos')
+    .select('fecha')
+    .eq('pago_id', pagoId)
+
+  const meses = new Set<string>([
+    String(pago.fecha).slice(0, 7),
+    ...(movimientos ?? []).map((m) => String(m.fecha).slice(0, 7)),
+  ])
+
+  for (const mesAnio of meses) {
+    const [anio, mes] = mesAnio.split('-').map(Number)
+    const { data: cierre } = await supabase
+      .from('caja_mensual')
+      .select('cerrado')
+      .eq('mes', mes)
+      .eq('anio', anio)
+      .maybeSingle()
+
+    if (cierre?.cerrado) {
+      return { error: 'No se puede eliminar: el mes de caja de este pago ya está cerrado.' }
+    }
+  }
+
+  const { error } = await supabase.rpc('eliminar_pago', { p_pago_id: pagoId })
+  if (error) return { error: error.message }
+
+  // Si tenía comprobante adjunto, se borra el archivo (si falla, no importa)
+  if (pago.comprobante_url) {
+    await supabase.storage.from('comprobantes').remove([pago.comprobante_url])
+  }
+
+  await registrarAuditoria({
+    usuarioId: user?.id,
+    accion: 'eliminar_pago',
+    entidad: 'pago',
+    entidadId: pagoId,
+    detalle: {
+      trabajo_id: pago.trabajo_id,
+      importe: pago.importe,
+      medio_pago: pago.medio_pago,
+      detalle_medio_pago: pago.detalle_medio_pago,
+    },
+  })
+
+  revalidatePath(`/trabajos/${pago.trabajo_id}`)
+  revalidatePath('/caja')
+  revalidatePath('/deudas')
+  revalidatePath('/alertas')
   return { success: true }
 }
 

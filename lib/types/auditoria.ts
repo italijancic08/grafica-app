@@ -15,6 +15,7 @@ export const ETIQUETAS_ACCION: Record<string, string> = {
   cambiar_estado: 'Cambio de estado',
   registrar_pago: 'Pago registrado',
   editar_pago: 'Pago editado',
+  eliminar_pago: 'Pago eliminado',
   registrar_movimiento: 'Movimiento de stock',
   registrar_movimiento_caja: 'Movimiento de caja',
   editar_movimiento_caja: 'Movimiento de caja editado',

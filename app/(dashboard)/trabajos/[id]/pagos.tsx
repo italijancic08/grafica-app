@@ -13,12 +13,14 @@ export default function SeccionPagos({
   saldo,
   pagos,
   mesesCerrados = [],
+  administrador = false,
 }: {
   trabajoId: string
   clienteId: string | null
   saldo: number
   pagos: Pago[]
   mesesCerrados?: string[]
+  administrador?: boolean
 }) {
   const router = useRouter()
   const [importe, setImporte] = useState('')
@@ -215,6 +217,7 @@ export default function SeccionPagos({
               key={p.id}
               pago={p}
               bloqueado={mesesCerrados.includes(p.fecha.slice(0, 7))}
+              administrador={administrador}
             />
           ))}
         </tbody>

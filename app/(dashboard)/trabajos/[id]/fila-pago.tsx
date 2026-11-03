@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { actualizarPago } from '@/lib/services/pagos'
+import { actualizarPago, eliminarPago } from '@/lib/services/pagos'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta, type Pago } from '@/lib/types/pago'
 import { formatearMoneda } from '@/lib/utils/formato'
 import ComprobantePago from './comprobante-pago'
@@ -10,9 +10,11 @@ import ComprobantePago from './comprobante-pago'
 export default function FilaPago({
   pago,
   bloqueado = false,
+  administrador = false,
 }: {
   pago: Pago
   bloqueado?: boolean
+  administrador?: boolean
 }) {
   const router = useRouter()
   const [editando, setEditando] = useState(false)
@@ -26,6 +28,33 @@ export default function FilaPago({
   const [observacion, setObservacion] = useState(pago.observacion ?? '')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+
+  async function handleEliminar() {
+    setErrorEliminar(null)
+    setEliminando(true)
+
+    try {
+      const resultado = await eliminarPago(pago.id)
+
+      if (resultado.error) {
+        setErrorEliminar(resultado.error)
+        setConfirmandoEliminar(false)
+        return
+      }
+
+      router.refresh()
+    } catch (err) {
+      console.error(err)
+      setErrorEliminar('Ocurrió un error inesperado.')
+      setConfirmandoEliminar(false)
+    } finally {
+      setEliminando(false)
+    }
+  }
 
   function handleCancelar() {
     setImporte(String(pago.importe))
@@ -172,14 +201,47 @@ export default function FilaPago({
         <div className="flex items-center justify-between gap-2">
           <span>{pago.observacion ?? '—'}</span>
           {!bloqueado && (
-            <button
-              onClick={() => setEditando(true)}
-              className="whitespace-nowrap text-xs font-medium text-gray-600 hover:underline"
-            >
-              Editar
-            </button>
+            confirmandoEliminar ? (
+              <span className="inline-flex items-center gap-2 whitespace-nowrap text-xs">
+                <span className="text-gray-600">¿Eliminar pago?</span>
+                <button
+                  type="button"
+                  onClick={handleEliminar}
+                  disabled={eliminando}
+                  className="font-medium text-red-600 hover:underline disabled:opacity-50"
+                >
+                  {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoEliminar(false)}
+                  disabled={eliminando}
+                  className="font-medium text-gray-900 hover:underline disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </span>
+            ) : (
+              <span className="whitespace-nowrap">
+                <button
+                  onClick={() => setEditando(true)}
+                  className="text-xs font-medium text-gray-600 hover:underline"
+                >
+                  Editar
+                </button>
+                {administrador && (
+                  <button
+                    onClick={() => setConfirmandoEliminar(true)}
+                    className="ml-3 text-xs font-medium text-red-600 hover:underline"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </span>
+            )
           )}
         </div>
+        {errorEliminar && <p className="mt-1 text-xs text-red-600">{errorEliminar}</p>}
       </td>
     </tr>
   )

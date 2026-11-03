@@ -15,6 +15,7 @@ import SeccionComprobantes from './comprobantes'
 import AccionesPresupuesto from './acciones-presupuesto'
 import { listarMesesCerrados } from '@/lib/services/caja-mensual'
 import { createClient } from '@/lib/supabase/server'
+import { esAdministrador } from '@/lib/auth/roles'
 
 
 export default async function DetalleTrabajoPage({
@@ -61,6 +62,7 @@ if (esPresupuesto) {
   // Pagos, tercerizaciones y comprobantes solo existen una vez aceptado el trabajo
   const { data: pagos } = esTrabajo ? await listarPagosDeTrabajo(id) : { data: [] }
   const { data: tercerizaciones } = esTrabajo ? await listarTercerizacionesDeTrabajo(id) : { data: [] }
+  const administrador = await esAdministrador()
   const { data: mesesCerrados } = esTrabajo ? await listarMesesCerrados() : { data: [] }
   const { data: comprobantes } = esTrabajo ? await listarComprobantesDeTrabajo(id) : { data: [] }
 
@@ -184,6 +186,7 @@ if (esPresupuesto) {
               saldo={t.saldo}
               pagos={pagos ?? []}
               mesesCerrados={mesesCerrados ?? []}
+              administrador={administrador}
             />
           </div>
 

@@ -109,8 +109,8 @@ export async function actualizarMovimientoCaja(id: string, input: MovimientoCaja
 }
 
 // Elimina un movimiento de caja. Solo administrador.
-// No permite borrar movimientos que vienen de un pago de trabajo (dejaría el
-// pago y la caja desincronizados) ni movimientos de un mes de caja ya cerrado.
+// No permite borrar movimientos que vienen de un pago de trabajo (se eliminan
+// desde el trabajo con eliminarPago, que borra ambos juntos) ni movimientos de un mes de caja ya cerrado.
 export async function eliminarMovimientoCaja(id: string) {
   const sinPermiso = await errorSiNoEsAdministrador()
   if (sinPermiso) return { error: sinPermiso.error }
@@ -127,7 +127,7 @@ export async function eliminarMovimientoCaja(id: string) {
   if (errorMovimiento || !movimiento) return { error: 'No se encontró el movimiento' }
 
   if (movimiento.pago_id) {
-    return { error: 'Este movimiento viene de un pago de trabajo. Se administra desde el trabajo, no desde la caja.' }
+    return { error: 'Este movimiento viene de un pago de trabajo. Para eliminarlo, eliminá el pago desde el trabajo.' }
   }
 
   const [anio, mes] = String(movimiento.fecha).slice(0, 7).split('-').map(Number)
