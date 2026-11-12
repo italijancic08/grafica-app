@@ -7,6 +7,7 @@ import AutorizacionGratuitos from '../autorizacion-gratuitos'
 import { esAdministrador } from '@/lib/auth/roles'
 import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 import { formatearFecha } from '@/lib/utils/formato'
+import { etiquetaEstadoPresupuesto } from '@/lib/utils/estado-presupuesto'
 
 function formatearMoneda(valor: number) {
   return valor.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
@@ -131,7 +132,11 @@ export default async function FichaClientePage({
                       {t.descripcion}
                     </Link>
                   </td>
-                  <td className="px-4 py-2">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</td>
+                  <td className="px-4 py-2">
+                    {t.estado_operativo === 'PRESUPUESTO'
+                      ? etiquetaEstadoPresupuesto(t.fecha_envio_presupuesto)
+                      : ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}
+                  </td>
                   <td className="px-4 py-2">{formatearFecha(t.fecha_finalizacion)}</td>
                   <td className={`px-4 py-2 ${!esPresupuesto && t.saldo > 0 ? 'text-red-600' : ''}`}>
                     {esPresupuesto ? '—' : formatearMoneda(t.saldo)}

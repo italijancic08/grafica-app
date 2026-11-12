@@ -9,6 +9,9 @@ import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/t
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
 import CambiarEstado from './cambiar-estado'
 import MuestraEnviada from './muestra-enviada'
+import FotosTrabajo from './fotos-trabajo'
+import { listarFotosDeTrabajo } from '@/lib/services/fotos-trabajo'
+import { etiquetaEstadoPresupuesto } from '@/lib/utils/estado-presupuesto'
 import SeccionPagos from './pagos'
 import SeccionTercerizacion from './tercerizar'
 import EditarTrabajo from './editar-trabajo'
@@ -66,6 +69,7 @@ if (esPresupuesto) {
   const administrador = await esAdministrador()
   const { data: mesesCerrados } = esTrabajo ? await listarMesesCerrados() : { data: [] }
   const { data: comprobantes } = esTrabajo ? await listarComprobantesDeTrabajo(id) : { data: [] }
+  const { data: fotos } = await listarFotosDeTrabajo(id)
 
   return (
     <div className="p-6">
@@ -73,7 +77,7 @@ if (esPresupuesto) {
         <h1 className="text-xl font-semibold text-gray-900">{t.numero}</h1>
         {esPresupuesto && (
           <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
-            Presupuesto
+            {etiquetaEstadoPresupuesto(t.fecha_envio_presupuesto)}
           </span>
         )}
         {esRechazado && (
@@ -92,7 +96,7 @@ if (esPresupuesto) {
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-gray-200 p-4">
           <p className="text-xs text-gray-500">Estado</p>
-          <p className="text-lg font-semibold">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</p>
+          <p className="text-lg font-semibold">{esPresupuesto ? etiquetaEstadoPresupuesto(t.fecha_envio_presupuesto) : ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</p>
         </div>
         {esTrabajo && (
           <div className="rounded-lg border border-gray-200 p-4">
@@ -162,6 +166,12 @@ if (esPresupuesto) {
         )}
       </div>
 
+      <FotosTrabajo
+        trabajoId={t.id}
+        fotos={fotos ?? []}
+        editable={!esRechazado && !['FINALIZADO', 'RETIRADO', 'CANCELADO'].includes(t.estado_operativo)}
+      />
+
       {esPresupuesto && (
         <div className="rounded-lg border border-gray-200 p-4">
           
@@ -170,6 +180,7 @@ if (esPresupuesto) {
   precioFinal={t.precio_final}
   tieneRubro={!!t.rubro}
   permiteTrabajosGratis={permiteTrabajosGratis}
+  fechaEnvio={t.fecha_envio_presupuesto ?? null}
 />
 
         </div>

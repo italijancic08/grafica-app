@@ -503,6 +503,51 @@ export async function marcarMuestraEnviada(trabajoId: string, fecha: string | nu
   return { success: true }
 }
 
+// Marca cuándo se envió el presupuesto al cliente. fecha = null quita el envío.
+// A los 10 días sin respuesta el presupuesto se archiva solo (se calcula al listar).
+export async function marcarPresupuestoEnviado(trabajoId: string, fecha: string | null) {
+  if (fecha !== null && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return { error: 'Fecha inválida.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: actual, error: errorActual } = await supabase
+    .from('trabajos')
+    .select('estado_operativo')
+    .eq('id', trabajoId)
+    .single()
+
+  if (errorActual || !actual) return { error: 'No se encontró el presupuesto' }
+
+  if (actual.estado_operativo !== 'PRESUPUESTO') {
+    return { error: 'Solo se puede marcar como enviado un presupuesto pendiente.' }
+  }
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      fecha_envio_presupuesto: fecha,
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', trabajoId)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'editar',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { presupuesto_enviado: fecha },
+  })
+
+  revalidatePath('/presupuestos')
+  revalidatePath(`/trabajos/${trabajoId}`)
+  return { success: true }
+}
+
 export async function listarParaRetirar() {
   return listarTrabajos(['TERMINADO', 'PARA_RETIRAR'])
 }

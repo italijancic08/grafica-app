@@ -36,6 +36,7 @@ export interface Trabajo {
   fecha_finalizacion: string | null
   fecha_retiro: string | null
   fecha_notificacion?: string | null
+  fecha_envio_presupuesto?: string | null
   fecha_muestra_enviada?: string | null
   precio_final: number
   precio_base: number | null

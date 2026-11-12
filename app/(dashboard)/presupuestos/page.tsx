@@ -1,19 +1,47 @@
 import Link from 'next/link'
 import { listarTrabajos } from '@/lib/services/trabajos'
-import { ETIQUETAS_RUBRO_TRABAJO, type RubroTrabajo } from '@/lib/types/trabajo'
-import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+import { formatearFecha } from '@/lib/utils/formato'
+import { filtrarTrabajosPorBusqueda } from '@/lib/utils/buscar-trabajos'
+import { presupuestoArchivado, etiquetaEstadoPresupuesto } from '@/lib/utils/estado-presupuesto'
+import BuscadorFiltrosPresupuestos from './buscador-filtros-presupuestos'
 
 export default async function PresupuestosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string }>
+  searchParams: Promise<{ ver?: string; q?: string; estado?: string }>
 }) {
-  const { ver } = await searchParams
+  const { ver, q, estado } = await searchParams
   const verRechazados = ver === 'rechazados'
+  const busqueda = (q ?? '').trim()
+  const estadoFiltro =
+    !verRechazados && (estado === 'pendiente' || estado === 'enviado') ? estado : null
 
-  const { data: presupuestos, error } = await listarTrabajos([
-    verRechazados ? 'RECHAZADO' : 'PRESUPUESTO',
-  ])
+  // Los más viejos arriba (por fecha de carga)
+  const { data: todos, error } = await listarTrabajos(
+    [verRechazados ? 'RECHAZADO' : 'PRESUPUESTO'],
+    true
+  )
+
+  // Los presupuestos enviados hace más de 10 días sin respuesta se archivan:
+  // no se listan acá, pero siguen en el historial del cliente.
+  const vigentes = verRechazados
+    ? todos
+    : todos?.filter((p) => !presupuestoArchivado(p.fecha_envio_presupuesto))
+
+  // La búsqueda se aplica primero; los contadores reflejan sus resultados
+  const coincidentes =
+    busqueda && vigentes ? filtrarTrabajosPorBusqueda(vigentes, busqueda) : vigentes
+
+  const presupuestos = estadoFiltro
+    ? coincidentes?.filter((p) =>
+        estadoFiltro === 'enviado' ? !!p.fecha_envio_presupuesto : !p.fecha_envio_presupuesto
+      )
+    : coincidentes
+
+  const conteos: Record<string, number> = {
+    pendiente: coincidentes?.filter((p) => !p.fecha_envio_presupuesto).length ?? 0,
+    enviado: coincidentes?.filter((p) => !!p.fecha_envio_presupuesto).length ?? 0,
+  }
 
   const tab = (activo: boolean) =>
     `rounded-md px-3 py-1.5 text-sm font-medium ${
@@ -22,7 +50,7 @@ export default async function PresupuestosPage({
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Presupuestos</h1>
         <Link
           href="/trabajos/nuevo"
@@ -32,32 +60,55 @@ export default async function PresupuestosPage({
         </Link>
       </div>
 
+      {!verRechazados && (
+        <p className="mb-4 text-xs text-gray-500">
+          Los presupuestos enviados que no reciben respuesta se archivan solos a los 10 días
+          y quedan en el historial del cliente.
+        </p>
+      )}
+
       <div className="mb-4 flex gap-2">
         <Link href="/presupuestos" className={tab(!verRechazados)}>Pendientes</Link>
         <Link href="/presupuestos?ver=rechazados" className={tab(verRechazados)}>Rechazados</Link>
       </div>
 
+      <BuscadorFiltrosPresupuestos
+        estadoActivo={estadoFiltro}
+        conteos={conteos}
+        total={coincidentes?.length ?? 0}
+        verRechazados={verRechazados}
+      />
+
+      {(busqueda || estadoFiltro) && presupuestos && (
+        <p className="mb-3 text-sm text-gray-500">
+          {presupuestos.length} {presupuestos.length === 1 ? 'resultado' : 'resultados'}
+        </p>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Número</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Orden Nº</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de ingreso</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Descripción</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Rubro</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Monto</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Plazo de entrega</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de envío</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
-              <tr><td colSpan={7} className="px-4 py-3 text-red-600">{error}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
             {presupuestos?.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-3 text-gray-500">
-                  {verRechazados ? 'Sin presupuestos rechazados.' : 'Sin presupuestos pendientes.'}
+                <td colSpan={6} className="px-4 py-3 text-gray-500">
+                  {busqueda || estadoFiltro
+                    ? 'No hay presupuestos que coincidan con la búsqueda o los filtros.'
+                    : verRechazados
+                      ? 'Sin presupuestos rechazados.'
+                      : 'Sin presupuestos pendientes.'}
                 </td>
               </tr>
             )}
@@ -75,16 +126,9 @@ export default async function PresupuestosPage({
                 </td>
                 <td className="max-w-xs truncate px-4 py-2">{p.descripcion}</td>
                 <td className="px-4 py-2">
-                  {p.rubro ? ETIQUETAS_RUBRO_TRABAJO[p.rubro as RubroTrabajo] : '—'}
+                  {verRechazados ? 'Rechazado' : etiquetaEstadoPresupuesto(p.fecha_envio_presupuesto)}
                 </td>
-                <td className="px-4 py-2">
-                  {p.precio_final > 0 ? (
-                    formatearMoneda(p.precio_final)
-                  ) : (
-                    <span className="font-medium text-yellow-600">Sin definir</span>
-                  )}
-                </td>
-                <td className="px-4 py-2">{formatearFecha(p.fecha_maxima)}</td>
+                <td className="px-4 py-2">{formatearFecha(p.fecha_envio_presupuesto ?? null)}</td>
               </tr>
             ))}
           </tbody>

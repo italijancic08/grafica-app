@@ -6,23 +6,52 @@ import { useRouter } from 'next/navigation'
 import {
   aceptarPresupuesto,
   rechazarPresupuesto,
+  marcarPresupuestoEnviado,
 } from '@/lib/services/trabajos'
+import { fechaHoyArgentina, formatearFecha } from '@/lib/utils/formato'
+import { presupuestoArchivado } from '@/lib/utils/estado-presupuesto'
 
 export default function AccionesPresupuesto({
   trabajoId,
   precioFinal,
   tieneRubro,
   permiteTrabajosGratis,
+  fechaEnvio,
 }: {
   trabajoId: string
   precioFinal: number
   tieneRubro: boolean
   permiteTrabajosGratis: boolean
+  fechaEnvio: string | null
 }) {
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
   const [confirmandoRechazo, setConfirmandoRechazo] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fechaEnvioInput, setFechaEnvioInput] = useState(fechaHoyArgentina())
+
+  const archivado = presupuestoArchivado(fechaEnvio)
+
+  async function guardarEnvio(fecha: string | null) {
+    setError(null)
+    setCargando(true)
+
+    try {
+      const resultado = await marcarPresupuestoEnviado(trabajoId, fecha)
+
+      if (resultado.error) {
+        setError(resultado.error)
+        return
+      }
+
+      router.refresh()
+    } catch (err) {
+      console.error(err)
+      setError('Ocurrió un error inesperado.')
+    } finally {
+      setCargando(false)
+    }
+  }
 
   const esGratuito = precioFinal === 0 && permiteTrabajosGratis
 
@@ -84,6 +113,55 @@ export default function AccionesPresupuesto({
 
   return (
     <div>
+      <div className="mb-5 rounded-md border border-gray-200 bg-gray-50 p-3">
+        <p className="mb-2 text-sm font-medium text-gray-700">Envío del presupuesto</p>
+
+        {fechaEnvio ? (
+          <>
+            <p className="text-sm text-gray-900">
+              Presupuesto enviado el{' '}
+              <span className="font-semibold">{formatearFecha(fechaEnvio)}</span>
+            </p>
+
+            {archivado && (
+              <p className="mt-1 text-xs text-yellow-700">
+                Pasaron más de 10 días sin respuesta: está archivado y ya no se lista en
+                Presupuestos. Si el cliente confirma, igual podés aceptarlo desde acá.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => guardarEnvio(null)}
+              disabled={cargando}
+              className="mt-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-white disabled:opacity-50"
+            >
+              Quitar envío
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Fecha de envío</label>
+              <input
+                type="date"
+                value={fechaEnvioInput}
+                onChange={(e) => setFechaEnvioInput(e.target.value)}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => guardarEnvio(fechaEnvioInput)}
+              disabled={cargando || !fechaEnvioInput}
+              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            >
+              {cargando ? 'Guardando...' : 'Marcar presupuesto enviado'}
+            </button>
+          </div>
+        )}
+      </div>
+
       <p className="mb-1 text-sm font-medium text-gray-700">
         Respuesta del cliente
       </p>
