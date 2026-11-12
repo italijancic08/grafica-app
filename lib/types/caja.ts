@@ -12,6 +12,7 @@ export type Rubro =
   | 'polarizado' | 'posicionador' | 'retiro_dinero' | 'rigidos' | 'sellos' | 'supermercado'
   | 'trabajos_imprenta' | 'termotransferible_corte' | 'venta_lamina' | 'venta_materiales'
   | 'vinilo_aerosol'
+  | 'compras' | 'articulos_materiales' | 'servicios' | 'adelantos' | 'sueldos'
 
 export interface MovimientoCaja {
   id: string
@@ -69,4 +70,48 @@ export const ETIQUETAS_RUBRO: Record<Rubro, string> = {
   venta_lamina: 'Venta de lámina',
   venta_materiales: 'Venta de materiales',
   vinilo_aerosol: 'Vinilo en aerosol',
+  compras: 'Compras',
+  articulos_materiales: 'Artículos y materiales',
+  servicios: 'Servicios',
+  adelantos: 'Adelantos',
+  sueldos: 'Sueldos',
+}
+
+// Rubros que se pueden elegir al cargar una SALIDA de dinero
+export const RUBROS_EGRESO: Rubro[] = [
+  'compras',
+  'pago_proveedores',
+  'comisiones',
+  'reposicion_caja',
+  'retiro_dinero',
+  'articulos_materiales',
+  'servicios',
+  'otros_varios',
+]
+
+// Rubros de salida que solo puede cargar un administrador
+export const RUBROS_EGRESO_SOLO_ADMIN: Rubro[] = ['adelantos', 'sueldos', 'dif_caja']
+
+// Rubros nuevos pensados solo para salidas (no se ofrecen en los ingresos)
+export const RUBROS_NUEVOS_SOLO_EGRESO: Rubro[] = [
+  'compras',
+  'articulos_materiales',
+  'servicios',
+  'adelantos',
+  'sueldos',
+]
+
+// Nombres con los que se muestran en el formulario de salidas
+export const ETIQUETAS_RUBRO_EGRESO: Partial<Record<Rubro, string>> = {
+  compras: 'Compras',
+  pago_proveedores: 'Pago a proveedores',
+  comisiones: 'Comisiones',
+  reposicion_caja: 'Reposición de caja',
+  retiro_dinero: 'Retiro de dinero',
+  articulos_materiales: 'Artículos y materiales',
+  servicios: 'Servicios',
+  otros_varios: 'Otro',
+  adelantos: 'Adelantos',
+  sueldos: 'Sueldos',
+  dif_caja: 'Diferencia de caja',
 }

@@ -9,3 +9,12 @@ export const movimientoCajaSchema = z.object({
 })
 
 export type MovimientoCajaInput = z.infer<typeof movimientoCajaSchema>
+
+// Alta de un movimiento manual: el navegador genera el id y sube el comprobante
+// antes de guardar, así una salida de dinero nunca queda registrada sin RC.
+export const movimientoCajaNuevoSchema = movimientoCajaSchema.extend({
+  id: z.uuid(),
+  comprobante_url: z.string().min(1).optional(),
+})
+
+export type MovimientoCajaNuevoInput = z.infer<typeof movimientoCajaNuevoSchema>

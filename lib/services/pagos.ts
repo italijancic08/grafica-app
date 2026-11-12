@@ -5,6 +5,7 @@ import { pagoSchema, pagoEditSchema, type PagoInput, type PagoEditInput } from '
 import { revalidatePath } from 'next/cache'
 import { registrarAuditoria } from '@/lib/services/auditoria'
 import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
+import { formatearMoneda } from '@/lib/utils/formato'
 
 export async function listarPagosDeTrabajo(trabajoId: string) {
   const supabase = await createClient()
@@ -63,6 +64,68 @@ export async function registrarPago(input: PagoInput) {
 
   revalidatePath(`/trabajos/${parsed.data.trabajo_id}`)
   return { data }
+}
+
+// Pago mixto: se registran DOS pagos (uno en efectivo y otro por transferencia)
+// para que la caja física y los comprobantes queden bien.
+export async function registrarPagoMixto(input: {
+  trabajo_id: string
+  cliente_id?: string | null
+  importe_efectivo: number
+  importe_transferencia: number
+  observacion?: string
+}) {
+  const efectivo = Number(input.importe_efectivo)
+  const transferencia = Number(input.importe_transferencia)
+
+  if (!(efectivo > 0) || !(transferencia > 0)) {
+    return { error: 'En un pago mixto ingresá tanto el importe en efectivo como el de transferencia.' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: trabajo } = await supabase
+    .from('trabajos_con_saldo')
+    .select('saldo, numero')
+    .eq('id', input.trabajo_id)
+    .single()
+
+  if (trabajo && efectivo + transferencia > trabajo.saldo) {
+    return {
+      error: `La suma de los importes (${formatearMoneda(efectivo + transferencia)}) supera el saldo pendiente (${formatearMoneda(trabajo.saldo)}) del trabajo ${trabajo.numero}.`,
+    }
+  }
+
+  const nota = `Pago mixto: efectivo ${formatearMoneda(efectivo)} + transferencia ${formatearMoneda(transferencia)}`
+  const observacion = input.observacion?.trim() ? `${nota}. ${input.observacion.trim()}` : nota
+
+  const pagoEfectivo = await registrarPago({
+    trabajo_id: input.trabajo_id,
+    cliente_id: input.cliente_id,
+    importe: efectivo,
+    medio_pago: 'efectivo',
+    observacion,
+  })
+
+  if (pagoEfectivo.error || !pagoEfectivo.data) {
+    return { error: pagoEfectivo.error ?? 'No se pudo registrar el pago en efectivo.' }
+  }
+
+  const pagoTransferencia = await registrarPago({
+    trabajo_id: input.trabajo_id,
+    cliente_id: input.cliente_id,
+    importe: transferencia,
+    medio_pago: 'transferencia',
+    observacion,
+  })
+
+  if (pagoTransferencia.error || !pagoTransferencia.data) {
+    return {
+      error: `Se registró el pago en efectivo (${formatearMoneda(efectivo)}), pero falló la transferencia: ${pagoTransferencia.error ?? 'error desconocido'}. Registrala por separado.`,
+    }
+  }
+
+  return { data: { efectivo: pagoEfectivo.data, transferencia: pagoTransferencia.data } }
 }
 
 export async function actualizarPago(pagoId: string, input: PagoEditInput) {

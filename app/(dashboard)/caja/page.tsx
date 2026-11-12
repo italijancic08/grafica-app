@@ -88,7 +88,7 @@ export default async function CajaPage({
         </div>
       )}
 
-      <FormularioMovimientoCaja bloqueado={bloqueado} />
+      <FormularioMovimientoCaja bloqueado={bloqueado} administrador={administrador} />
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">

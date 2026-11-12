@@ -5,48 +5,54 @@ import { filtrarTrabajosPorBusqueda } from '@/lib/utils/buscar-trabajos'
 import { presupuestoArchivado, etiquetaEstadoPresupuesto } from '@/lib/utils/estado-presupuesto'
 import BuscadorFiltrosPresupuestos from './buscador-filtros-presupuestos'
 
+type Vista = 'pendientes' | 'enviados' | 'rechazados'
+
 export default async function PresupuestosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string; estado?: string }>
+  searchParams: Promise<{ ver?: string; q?: string }>
 }) {
-  const { ver, q, estado } = await searchParams
-  const verRechazados = ver === 'rechazados'
+  const { ver, q } = await searchParams
+  const vista: Vista = ver === 'enviados' ? 'enviados' : ver === 'rechazados' ? 'rechazados' : 'pendientes'
   const busqueda = (q ?? '').trim()
-  const estadoFiltro =
-    !verRechazados && (estado === 'pendiente' || estado === 'enviado') ? estado : null
 
   // Los más viejos arriba (por fecha de carga)
-  const { data: todos, error } = await listarTrabajos(
-    [verRechazados ? 'RECHAZADO' : 'PRESUPUESTO'],
-    true
+  const { data: presupuestosTodos, error: errorPresupuestos } = await listarTrabajos(['PRESUPUESTO'], true)
+
+  // Los enviados hace más de 10 días sin respuesta se archivan: no se listan acá,
+  // pero siguen en el historial del cliente.
+  const vigentes = (presupuestosTodos ?? []).filter(
+    (p) => !presupuestoArchivado(p.fecha_envio_presupuesto)
   )
+  const sinEnviar = vigentes.filter((p) => !p.fecha_envio_presupuesto)
+  const enviados = vigentes.filter((p) => !!p.fecha_envio_presupuesto)
 
-  // Los presupuestos enviados hace más de 10 días sin respuesta se archivan:
-  // no se listan acá, pero siguen en el historial del cliente.
-  const vigentes = verRechazados
-    ? todos
-    : todos?.filter((p) => !presupuestoArchivado(p.fecha_envio_presupuesto))
+  let base = vista === 'enviados' ? enviados : sinEnviar
+  let error = errorPresupuestos
 
-  // La búsqueda se aplica primero; los contadores reflejan sus resultados
-  const coincidentes =
-    busqueda && vigentes ? filtrarTrabajosPorBusqueda(vigentes, busqueda) : vigentes
-
-  const presupuestos = estadoFiltro
-    ? coincidentes?.filter((p) =>
-        estadoFiltro === 'enviado' ? !!p.fecha_envio_presupuesto : !p.fecha_envio_presupuesto
-      )
-    : coincidentes
-
-  const conteos: Record<string, number> = {
-    pendiente: coincidentes?.filter((p) => !p.fecha_envio_presupuesto).length ?? 0,
-    enviado: coincidentes?.filter((p) => !!p.fecha_envio_presupuesto).length ?? 0,
+  if (vista === 'rechazados') {
+    const rechazados = await listarTrabajos(['RECHAZADO'], true)
+    base = rechazados.data ?? []
+    error = rechazados.error ?? error
   }
+
+  const presupuestos = busqueda ? filtrarTrabajosPorBusqueda(base, busqueda) : base
+
+  const mostrarEnvio = vista !== 'pendientes'
+  const columnas = mostrarEnvio ? 6 : 5
 
   const tab = (activo: boolean) =>
     `rounded-md px-3 py-1.5 text-sm font-medium ${
       activo ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
     }`
+
+  const mensajeVacio = busqueda
+    ? 'No hay presupuestos que coincidan con la búsqueda.'
+    : vista === 'rechazados'
+      ? 'Sin presupuestos rechazados.'
+      : vista === 'enviados'
+        ? 'Sin presupuestos enviados esperando respuesta.'
+        : 'Sin presupuestos pendientes de enviar.'
 
   return (
     <div className="p-6">
@@ -60,26 +66,28 @@ export default async function PresupuestosPage({
         </Link>
       </div>
 
-      {!verRechazados && (
+      {vista === 'enviados' && (
         <p className="mb-4 text-xs text-gray-500">
           Los presupuestos enviados que no reciben respuesta se archivan solos a los 10 días
           y quedan en el historial del cliente.
         </p>
       )}
 
-      <div className="mb-4 flex gap-2">
-        <Link href="/presupuestos" className={tab(!verRechazados)}>Pendientes</Link>
-        <Link href="/presupuestos?ver=rechazados" className={tab(verRechazados)}>Rechazados</Link>
+      <div className="mb-4 mt-4 flex flex-wrap gap-2">
+        <Link href="/presupuestos" className={tab(vista === 'pendientes')}>
+          Pendientes ({sinEnviar.length})
+        </Link>
+        <Link href="/presupuestos?ver=enviados" className={tab(vista === 'enviados')}>
+          Enviados ({enviados.length})
+        </Link>
+        <Link href="/presupuestos?ver=rechazados" className={tab(vista === 'rechazados')}>
+          Rechazados
+        </Link>
       </div>
 
-      <BuscadorFiltrosPresupuestos
-        estadoActivo={estadoFiltro}
-        conteos={conteos}
-        total={coincidentes?.length ?? 0}
-        verRechazados={verRechazados}
-      />
+      <BuscadorFiltrosPresupuestos vista={vista} />
 
-      {(busqueda || estadoFiltro) && presupuestos && (
+      {busqueda && (
         <p className="mb-3 text-sm text-gray-500">
           {presupuestos.length} {presupuestos.length === 1 ? 'resultado' : 'resultados'}
         </p>
@@ -94,25 +102,21 @@ export default async function PresupuestosPage({
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Descripción</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de envío</th>
+              {mostrarEnvio && (
+                <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de envío</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
-              <tr><td colSpan={6} className="px-4 py-3 text-red-600">{error}</td></tr>
+              <tr><td colSpan={columnas} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
-            {presupuestos?.length === 0 && (
+            {presupuestos.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-3 text-gray-500">
-                  {busqueda || estadoFiltro
-                    ? 'No hay presupuestos que coincidan con la búsqueda o los filtros.'
-                    : verRechazados
-                      ? 'Sin presupuestos rechazados.'
-                      : 'Sin presupuestos pendientes.'}
-                </td>
+                <td colSpan={columnas} className="px-4 py-3 text-gray-500">{mensajeVacio}</td>
               </tr>
             )}
-            {presupuestos?.map((p) => (
+            {presupuestos.map((p) => (
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2 font-medium">
                   <Link href={`/trabajos/${p.id}`} className="hover:underline">{p.numero}</Link>
@@ -126,9 +130,11 @@ export default async function PresupuestosPage({
                 </td>
                 <td className="max-w-xs truncate px-4 py-2">{p.descripcion}</td>
                 <td className="px-4 py-2">
-                  {verRechazados ? 'Rechazado' : etiquetaEstadoPresupuesto(p.fecha_envio_presupuesto)}
+                  {vista === 'rechazados' ? 'Rechazado' : etiquetaEstadoPresupuesto(p.fecha_envio_presupuesto)}
                 </td>
-                <td className="px-4 py-2">{formatearFecha(p.fecha_envio_presupuesto ?? null)}</td>
+                {mostrarEnvio && (
+                  <td className="px-4 py-2">{formatearFecha(p.fecha_envio_presupuesto ?? null)}</td>
+                )}
               </tr>
             ))}
           </tbody>

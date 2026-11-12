@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { registrarPago, adjuntarComprobantePago } from '@/lib/services/pagos'
+import { registrarPago, registrarPagoMixto, adjuntarComprobantePago } from '@/lib/services/pagos'
+import { formatearMoneda } from '@/lib/utils/formato'
 import { subirComprobantePago } from '@/lib/utils/subir-comprobante-pago'
 import { ETIQUETAS_MEDIO_PAGO, ETIQUETAS_TIPO_TARJETA, type MedioPago, type TipoTarjeta, type Pago } from '@/lib/types/pago'
 import FilaPago from './fila-pago'
@@ -24,6 +25,8 @@ export default function SeccionPagos({
 }) {
   const router = useRouter()
   const [importe, setImporte] = useState('')
+  const [importeEfectivo, setImporteEfectivo] = useState('')
+  const [importeTransferencia, setImporteTransferencia] = useState('')
   const [medioPago, setMedioPago] = useState<MedioPago>('efectivo')
   const [tipoTarjeta, setTipoTarjeta] = useState<TipoTarjeta>('debito')
   const [otroDetalle, setOtroDetalle] = useState('')
@@ -48,34 +51,60 @@ export default function SeccionPagos({
       undefined
 
     try {
-      const resultado = await registrarPago({
-        trabajo_id: trabajoId,
-        cliente_id: clienteId,
-        importe: Number(importe),
-        medio_pago: medioPago,
-        detalle_medio_pago: detalleMedioPago,
-        observacion,
-      })
+      // id del pago por transferencia (el que lleva comprobante)
+      let idPagoTransferencia: string | undefined
 
-      if (resultado.error) {
-        setError(resultado.error)
-        return
+      if (medioPago === 'mixto') {
+        // Se guardan dos pagos: uno en efectivo y otro por transferencia
+        const mixto = await registrarPagoMixto({
+          trabajo_id: trabajoId,
+          cliente_id: clienteId,
+          importe_efectivo: Number(importeEfectivo),
+          importe_transferencia: Number(importeTransferencia),
+          observacion,
+        })
+
+        if (mixto.error) {
+          setError(mixto.error)
+          router.refresh()
+          return
+        }
+
+        idPagoTransferencia = mixto.data?.transferencia.id
+      } else {
+        const resultado = await registrarPago({
+          trabajo_id: trabajoId,
+          cliente_id: clienteId,
+          importe: Number(importe),
+          medio_pago: medioPago,
+          detalle_medio_pago: detalleMedioPago,
+          observacion,
+        })
+
+        if (resultado.error) {
+          setError(resultado.error)
+          return
+        }
+
+        if (medioPago === 'transferencia') idPagoTransferencia = resultado.data?.id
       }
 
       // El comprobante es opcional: si falla la subida, el pago ya quedó
       // registrado y se puede adjuntar después desde la lista de pagos.
       let avisoComprobante: string | null = null
-      if (medioPago === 'transferencia' && archivo && resultado.data) {
-        const subida = await subirComprobantePago(trabajoId, resultado.data.id, archivo)
+      if (archivo && idPagoTransferencia) {
+        const subida = await subirComprobantePago(trabajoId, idPagoTransferencia, archivo)
         if (subida.error || !subida.ruta) {
           avisoComprobante = subida.error ?? 'No se pudo subir el archivo.'
         } else {
-          const adjuntado = await adjuntarComprobantePago(resultado.data.id, subida.ruta)
+          const adjuntado = await adjuntarComprobantePago(idPagoTransferencia, subida.ruta)
           if (adjuntado.error) avisoComprobante = adjuntado.error
         }
       }
 
       setImporte('')
+      setImporteEfectivo('')
+      setImporteTransferencia('')
       setObservacion('')
       setOtroDetalle('')
       setArchivo(null)
@@ -107,19 +136,21 @@ export default function SeccionPagos({
 
       {saldo > 0 ? (
         <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Importe</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              value={importe}
-              onChange={(e) => setImporte(e.target.value)}
-              placeholder={`Máx. ${saldo}`}
-              className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-            />
-          </div>
+          {medioPago !== 'mixto' && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Importe</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+                placeholder={`Máx. ${saldo}`}
+                className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">Medio de pago</label>
             <select
@@ -132,6 +163,42 @@ export default function SeccionPagos({
               ))}
             </select>
           </div>
+
+          {medioPago === 'mixto' && (
+            <>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Efectivo</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={importeEfectivo}
+                  onChange={(e) => setImporteEfectivo(e.target.value)}
+                  className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Transferencia</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={importeTransferencia}
+                  onChange={(e) => setImporteTransferencia(e.target.value)}
+                  className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <p className="pb-2 text-sm text-gray-600">
+                Total:{' '}
+                <span className="font-semibold">
+                  {formatearMoneda((Number(importeEfectivo) || 0) + (Number(importeTransferencia) || 0))}
+                </span>{' '}
+                (máx. {formatearMoneda(saldo)})
+              </p>
+            </>
+          )}
 
           {medioPago === 'tarjeta' && (
             <div>
@@ -166,12 +233,12 @@ export default function SeccionPagos({
             <input
               value={observacion}
               onChange={(e) => setObservacion(e.target.value)}
-              placeholder={medioPago === 'mixto' ? 'Ej: $500 efectivo + $300 transf.' : undefined}
+              placeholder={medioPago === 'mixto' ? 'Opcional' : undefined}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
             />
           </div>
 
-          {medioPago === 'transferencia' && (
+          {(medioPago === 'transferencia' || medioPago === 'mixto') && (
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">
                 Comprobante <span className="font-normal text-gray-400">(opcional)</span>

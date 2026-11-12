@@ -2,66 +2,138 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { registrarMovimientoManual, adjuntarComprobanteMovimiento } from '@/lib/services/caja'
+import { registrarMovimientoManual } from '@/lib/services/caja'
 import { subirComprobanteMovimientoCaja } from '@/lib/utils/subir-comprobante-caja'
 import { ETIQUETAS_MEDIO_PAGO, type MedioPago } from '@/lib/types/pago'
-import { ETIQUETAS_RUBRO, type Rubro, type TipoMovimientoCaja } from '@/lib/types/caja'
+import {
+  ETIQUETAS_RUBRO,
+  ETIQUETAS_RUBRO_EGRESO,
+  RUBROS_EGRESO,
+  RUBROS_EGRESO_SOLO_ADMIN,
+  RUBROS_NUEVOS_SOLO_EGRESO,
+  type Rubro,
+  type TipoMovimientoCaja,
+} from '@/lib/types/caja'
+import { formatearMoneda } from '@/lib/utils/formato'
 
-export default function FormularioMovimientoCaja({ bloqueado = false }: { bloqueado?: boolean }) {
+export default function FormularioMovimientoCaja({
+  bloqueado = false,
+  administrador = false,
+}: {
+  bloqueado?: boolean
+  administrador?: boolean
+}) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
   const [tipo, setTipo] = useState<TipoMovimientoCaja>('egreso')
   const [monto, setMonto] = useState('')
+  const [montoEfectivo, setMontoEfectivo] = useState('')
+  const [montoTransferencia, setMontoTransferencia] = useState('')
   const [concepto, setConcepto] = useState('')
   const [medioPago, setMedioPago] = useState<MedioPago>('efectivo')
-  const [rubro, setRubro] = useState<Rubro>('otros_varios')
+  const [rubro, setRubro] = useState<Rubro>('compras')
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [claveArchivo, setClaveArchivo] = useState(0)
 
+  const esMixto = medioPago === 'mixto'
+  const esEgreso = tipo === 'egreso'
+  const totalMixto = (Number(montoEfectivo) || 0) + (Number(montoTransferencia) || 0)
+  const mostrarComprobante = esEgreso || medioPago === 'transferencia' || esMixto
+
+  // Rubros disponibles: las salidas tienen una lista propia; los ingresos
+  // conservan la lista de siempre (sin los rubros nuevos de gastos).
+  const opcionesRubro: [string, string][] = esEgreso
+    ? [...RUBROS_EGRESO, ...(administrador ? RUBROS_EGRESO_SOLO_ADMIN : [])].map((r) => [
+        r,
+        ETIQUETAS_RUBRO_EGRESO[r] ?? ETIQUETAS_RUBRO[r],
+      ])
+    : Object.entries(ETIQUETAS_RUBRO).filter(
+        ([valor]) => !RUBROS_NUEVOS_SOLO_EGRESO.includes(valor as Rubro)
+      )
+
+  function alCambiarTipo(nuevoTipo: TipoMovimientoCaja) {
+    setTipo(nuevoTipo)
+    setRubro(nuevoTipo === 'egreso' ? 'compras' : 'otros_varios')
+  }
+
+  // Sube el comprobante (si hay) y registra un movimiento.
+  // Devuelve un mensaje de error, o null si salió bien.
+  async function crearMovimiento(
+    montoMovimiento: number,
+    medio: MedioPago,
+    conceptoMovimiento: string
+  ): Promise<string | null> {
+    const id = crypto.randomUUID()
+    let comprobanteUrl: string | undefined
+
+    if (archivo && (esEgreso || medio === 'transferencia')) {
+      const subida = await subirComprobanteMovimientoCaja(id, archivo)
+      if (subida.error || !subida.ruta) {
+        return subida.error ?? 'No se pudo subir el comprobante.'
+      }
+      comprobanteUrl = subida.ruta
+    }
+
+    const resultado = await registrarMovimientoManual({
+      id,
+      tipo,
+      monto: montoMovimiento,
+      concepto: conceptoMovimiento,
+      medio_pago: medio,
+      rubro,
+      comprobante_url: comprobanteUrl,
+    })
+
+    return resultado.error ?? null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (esEgreso && !archivo) {
+      setError('En las salidas de dinero es obligatorio adjuntar el comprobante (RC).')
+      return
+    }
+
+    if (esMixto && !(Number(montoEfectivo) > 0 && Number(montoTransferencia) > 0)) {
+      setError('En un pago mixto ingresá tanto el importe en efectivo como el de transferencia.')
+      return
+    }
+
+    // El pago mixto se guarda como dos movimientos: uno en efectivo y otro por transferencia
+    const partes: { medio: MedioPago; monto: number; concepto: string }[] = esMixto
+      ? [
+          { medio: 'efectivo', monto: Number(montoEfectivo), concepto: `${concepto} (pago mixto: efectivo)` },
+          { medio: 'transferencia', monto: Number(montoTransferencia), concepto: `${concepto} (pago mixto: transferencia)` },
+        ]
+      : [{ medio: medioPago, monto: Number(monto), concepto }]
+
     setCargando(true)
 
     try {
-      const resultado = await registrarMovimientoManual({
-        tipo,
-        monto: Number(monto),
-        concepto,
-        medio_pago: medioPago,
-        rubro,
-      })
+      for (let i = 0; i < partes.length; i++) {
+        const mensaje = await crearMovimiento(partes[i].monto, partes[i].medio, partes[i].concepto)
 
-      if (resultado.error) {
-        setError(resultado.error)
-        return
-      }
-
-      // El comprobante es opcional: si falla la subida, el movimiento ya quedó
-      // registrado y se puede adjuntar después desde la lista de movimientos.
-      let avisoComprobante: string | null = null
-      if (medioPago === 'transferencia' && archivo && resultado.data) {
-        const subida = await subirComprobanteMovimientoCaja(resultado.data.id, archivo)
-        if (subida.error || !subida.ruta) {
-          avisoComprobante = subida.error ?? 'No se pudo subir el archivo.'
-        } else {
-          const adjuntado = await adjuntarComprobanteMovimiento(resultado.data.id, subida.ruta)
-          if (adjuntado.error) avisoComprobante = adjuntado.error
+        if (mensaje) {
+          setError(
+            i > 0
+              ? `Se registró la primera parte (${ETIQUETAS_MEDIO_PAGO[partes[0].medio]}), pero falló la segunda: ${mensaje} Cargá manualmente la que falta.`
+              : mensaje
+          )
+          router.refresh()
+          return
         }
       }
 
       setMonto('')
+      setMontoEfectivo('')
+      setMontoTransferencia('')
       setConcepto('')
       setArchivo(null)
       setClaveArchivo((n) => n + 1)
-      if (avisoComprobante) {
-        // Se deja el formulario abierto para que se vea el aviso.
-        setError(`El movimiento se registró, pero no se pudo adjuntar el comprobante: ${avisoComprobante} Podés adjuntarlo desde la lista de movimientos.`)
-        router.refresh()
-        return
-      }
       setAbierto(false)
       router.refresh()
     } catch (err) {
@@ -97,10 +169,10 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
         <label className="mb-1 block text-xs font-medium text-gray-700">Tipo</label>
         <select
           value={tipo}
-          onChange={(e) => setTipo(e.target.value as TipoMovimientoCaja)}
+          onChange={(e) => alCambiarTipo(e.target.value as TipoMovimientoCaja)}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         >
-          <option value="egreso">Egreso (gasto)</option>
+          <option value="egreso">Egreso (salida de dinero)</option>
           <option value="ingreso">Ingreso</option>
         </select>
       </div>
@@ -111,7 +183,7 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
           onChange={(e) => setRubro(e.target.value as Rubro)}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
         >
-          {Object.entries(ETIQUETAS_RUBRO).map(([valor, etiqueta]) => (
+          {opcionesRubro.map(([valor, etiqueta]) => (
             <option key={valor} value={valor}>{etiqueta}</option>
           ))}
         </select>
@@ -128,18 +200,52 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
           ))}
         </select>
       </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Monto</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0.01"
-          required
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
+
+      {esMixto ? (
+        <>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Efectivo</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              value={montoEfectivo}
+              onChange={(e) => setMontoEfectivo(e.target.value)}
+              className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Transferencia</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              value={montoTransferencia}
+              onChange={(e) => setMontoTransferencia(e.target.value)}
+              className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <p className="pb-2 text-sm text-gray-600">
+            Total: <span className="font-semibold">{formatearMoneda(totalMixto)}</span>
+          </p>
+        </>
+      ) : (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-700">Monto</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+        </div>
+      )}
+
       <div>
         <label className="mb-1 block text-xs font-medium text-gray-700">Concepto</label>
         <input
@@ -151,10 +257,15 @@ export default function FormularioMovimientoCaja({ bloqueado = false }: { bloque
         />
       </div>
 
-      {medioPago === 'transferencia' && (
+      {mostrarComprobante && (
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">
-            Comprobante <span className="font-normal text-gray-400">(opcional)</span>
+            Comprobante (RC){' '}
+            {esEgreso ? (
+              <span className="font-semibold text-red-600">obligatorio</span>
+            ) : (
+              <span className="font-normal text-gray-400">(opcional)</span>
+            )}
           </label>
           <input
             key={claveArchivo}

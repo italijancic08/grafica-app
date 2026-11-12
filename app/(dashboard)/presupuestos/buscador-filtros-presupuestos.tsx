@@ -3,32 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 
-const OPCIONES_ESTADO = [
-  { valor: 'pendiente', etiqueta: 'Pendiente de presupuestar' },
-  { valor: 'enviado', etiqueta: 'Presupuesto enviado' },
-]
-
-export default function BuscadorFiltrosPresupuestos({
-  estadoActivo,
-  conteos,
-  total,
-  verRechazados,
-}: {
-  estadoActivo: string | null
-  conteos: Record<string, number>
-  total: number
-  verRechazados: boolean
-}) {
+export default function BuscadorFiltrosPresupuestos({ vista }: { vista: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const qActual = searchParams.get('q') ?? ''
 
   const [valor, setValor] = useState(qActual)
-  const [abierto, setAbierto] = useState(false)
 
-  const base = verRechazados ? '/presupuestos?ver=rechazados' : '/presupuestos'
+  const base = vista === 'pendientes' ? '/presupuestos' : `/presupuestos?ver=${vista}`
 
   // Busca automáticamente 300 ms después de dejar de escribir
   useEffect(() => {
@@ -42,21 +26,6 @@ export default function BuscadorFiltrosPresupuestos({
     }, 300)
     return () => clearTimeout(timer)
   }, [valor, qActual, searchParams, router])
-
-  // Los links de estado conservan la búsqueda actual
-  function hrefEstado(estado: string | null) {
-    const params = new URLSearchParams()
-    if (verRechazados) params.set('ver', 'rechazados')
-    if (qActual) params.set('q', qActual)
-    if (estado) params.set('estado', estado)
-    const qs = params.toString()
-    return qs ? `/presupuestos?${qs}` : '/presupuestos'
-  }
-
-  const pastilla = (activo: boolean) =>
-    `rounded-md px-3 py-1.5 text-sm font-medium ${
-      activo ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-    }`
 
   return (
     <div className="mb-4">
@@ -83,25 +52,7 @@ export default function BuscadorFiltrosPresupuestos({
           )}
         </div>
 
-        {!verRechazados && (
-          <button
-            type="button"
-            onClick={() => setAbierto((a) => !a)}
-            aria-expanded={abierto}
-            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium ${
-              abierto || estadoActivo
-                ? 'border-gray-900 text-gray-900'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <SlidersHorizontal size={16} />
-            Filtros
-            {estadoActivo && <span className="h-2 w-2 rounded-full bg-gray-900" />}
-            <ChevronDown size={16} className={`transition-transform ${abierto ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-
-        {(qActual || estadoActivo) && (
+        {qActual && (
           <Link
             href={base}
             onClick={() => setValor('')}
@@ -111,22 +62,6 @@ export default function BuscadorFiltrosPresupuestos({
           </Link>
         )}
       </div>
-
-      {!verRechazados && abierto && (
-        <div className="mt-3 rounded-lg border border-gray-200 p-4">
-          <p className="mb-2 text-xs font-medium text-gray-700">Estado</p>
-          <div className="flex flex-wrap gap-2">
-            <Link href={hrefEstado(null)} className={pastilla(!estadoActivo)}>
-              Todos ({total})
-            </Link>
-            {OPCIONES_ESTADO.map((o) => (
-              <Link key={o.valor} href={hrefEstado(o.valor)} className={pastilla(estadoActivo === o.valor)}>
-                {o.etiqueta} ({conteos[o.valor] ?? 0})
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

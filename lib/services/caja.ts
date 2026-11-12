@@ -1,11 +1,17 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { movimientoCajaSchema, type MovimientoCajaInput } from '@/lib/validations/caja'
+import {
+  movimientoCajaSchema,
+  movimientoCajaNuevoSchema,
+  type MovimientoCajaInput,
+  type MovimientoCajaNuevoInput,
+} from '@/lib/validations/caja'
+import { RUBROS_EGRESO, RUBROS_EGRESO_SOLO_ADMIN, type Rubro } from '@/lib/types/caja'
 import { revalidatePath } from 'next/cache'
 import { mesActualArgentina } from '@/lib/utils/formato'
 import { registrarAuditoria } from '@/lib/services/auditoria'
-import { errorSiNoEsAdministrador } from '@/lib/auth/roles'
+import { errorSiNoEsAdministrador, esAdministrador } from '@/lib/auth/roles'
 
 function rangoDelMes(mes: string) {
   const [anio, mesNum] = mes.split('-').map(Number)
@@ -47,10 +53,40 @@ export async function listarMesesConMovimientos() {
   return { data: meses }
 }
 
-export async function registrarMovimientoManual(input: MovimientoCajaInput) {
-  const parsed = movimientoCajaSchema.safeParse(input)
+export async function registrarMovimientoManual(input: MovimientoCajaNuevoInput) {
+  const parsed = movimientoCajaNuevoSchema.safeParse(input)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
+  }
+
+  // El pago mixto se carga como dos movimientos (efectivo y transferencia)
+  if (parsed.data.medio_pago === 'mixto') {
+    return { error: 'Para un pago mixto cargá por separado el importe en efectivo y el de transferencia.' }
+  }
+
+  if (
+    parsed.data.comprobante_url &&
+    !parsed.data.comprobante_url.startsWith(`caja/${parsed.data.id}/`)
+  ) {
+    return { error: 'Ruta de comprobante inválida.' }
+  }
+
+  if (parsed.data.tipo === 'egreso') {
+    // El RC es obligatorio en toda salida de dinero, sin excepción
+    if (!parsed.data.comprobante_url) {
+      return { error: 'En las salidas de dinero es obligatorio adjuntar el comprobante (RC).' }
+    }
+
+    const rubro = parsed.data.rubro as Rubro
+    const rubroSoloAdmin = RUBROS_EGRESO_SOLO_ADMIN.includes(rubro)
+
+    if (!RUBROS_EGRESO.includes(rubro) && !rubroSoloAdmin) {
+      return { error: 'Ese rubro no está disponible para una salida de dinero.' }
+    }
+
+    if (rubroSoloAdmin && !(await esAdministrador())) {
+      return { error: 'Este rubro solo lo puede cargar un administrador.' }
+    }
   }
 
   const supabase = await createClient()
