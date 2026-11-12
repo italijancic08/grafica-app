@@ -112,15 +112,29 @@ export async function obtenerProductividad({ desde, hasta }: FiltrosReporte) {
   if (sinPermiso) return sinPermiso
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('trabajos')
-    .select('fecha_maxima, fecha_retiro, fecha_finalizacion')
-    .eq('estado_operativo', 'RETIRADO')
-    .gte('fecha_retiro', desde)
-    .lte('fecha_retiro', hasta)
-    .not('fecha_maxima', 'is', null)
+  // Trabajos cerrados en el período: los retirados (circuito viejo) por fecha
+  // de retiro y los finalizados (circuito nuevo) por fecha de finalización.
+  const [retirados, finalizados] = await Promise.all([
+    supabase
+      .from('trabajos')
+      .select('fecha_maxima, fecha_retiro, fecha_finalizacion')
+      .eq('estado_operativo', 'RETIRADO')
+      .gte('fecha_retiro', desde)
+      .lte('fecha_retiro', hasta)
+      .not('fecha_maxima', 'is', null),
+    supabase
+      .from('trabajos')
+      .select('fecha_maxima, fecha_retiro, fecha_finalizacion')
+      .eq('estado_operativo', 'FINALIZADO')
+      .gte('fecha_finalizacion', desde)
+      .lte('fecha_finalizacion', hasta)
+      .not('fecha_maxima', 'is', null),
+  ])
 
+  const error = retirados.error ?? finalizados.error
   if (error) return { error: error.message }
+
+  const data = [...(retirados.data ?? []), ...(finalizados.data ?? [])]
 
   let aTiempo = 0
   let demorados = 0

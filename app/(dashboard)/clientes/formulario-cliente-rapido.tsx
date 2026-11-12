@@ -2,49 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { crearCliente } from '@/lib/services/clientes'
-import type { EmpresaCliente } from '@/lib/types/empresa-cliente'
-import SelectorEmpresa from './selector-empresa'
+import FormularioCliente from './formulario-cliente'
 
-export default function FormularioClienteRapido({ empresas }: { empresas: EmpresaCliente[] }) {
+export default function FormularioClienteRapido() {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
-  const [nombre, setNombre] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [cuitCuil, setCuitCuil] = useState('')
-  const [localidad, setLocalidad] = useState('')
-  const [empresaId, setEmpresaId] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [cargando, setCargando] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setCargando(true)
-
-    const resultado = await crearCliente({
-      nombre_razon_social: nombre,
-      telefono,
-      cuit_cuil: cuitCuil,
-      localidad,
-      empresa_cliente_id: empresaId,
-    })
-
-    setCargando(false)
-
-    if (resultado.error) {
-      setError(resultado.error)
-      return
-    }
-
-    setNombre('')
-    setTelefono('')
-    setCuitCuil('')
-    setLocalidad('')
-    setEmpresaId('')
-    setAbierto(false)
-    router.refresh()
-  }
 
   if (!abierto) {
     return (
@@ -58,67 +20,12 @@ export default function FormularioClienteRapido({ empresas }: { empresas: Empres
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 p-4">
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Nombre / Razón social</label>
-        <input
-          required
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Teléfono</label>
-        <input
-          value={telefono}
-          onChange={(e) => setTelefono(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL/DNI</label>
-        <input
-          value={cuitCuil}
-          onChange={(e) => setCuitCuil(e.target.value)}
-          placeholder="20-12345678-9"
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Localidad</label>
-        <input
-          value={localidad}
-          onChange={(e) => setLocalidad(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-700">Empresa (opcional)</label>
-        <SelectorEmpresa
-          empresas={empresas}
-          valor={empresaId}
-          onChange={setEmpresaId}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={cargando}
-        className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-      >
-        {cargando ? 'Guardando...' : 'Guardar'}
-      </button>
-      <button
-        type="button"
-        onClick={() => setAbierto(false)}
-        className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-      >
-        Cancelar
-      </button>
-
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
-    </form>
+    <FormularioCliente
+      onCreado={() => {
+        setAbierto(false)
+        router.refresh()
+      }}
+      onCancelar={() => setAbierto(false)}
+    />
   )
 }

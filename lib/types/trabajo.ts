@@ -10,6 +10,8 @@ export type EstadoOperativo =
   | 'PARA_RETIRAR'
   | 'RETIRADO'
   | 'CANCELADO'
+  | 'PENDIENTE_NOTIFICACION'
+  | 'FINALIZADO'
 
 export type EstadoFinanciero = 'SIN_PAGAR' | 'PAGO_PARCIAL' | 'PAGADO'
 
@@ -33,6 +35,8 @@ export interface Trabajo {
   fecha_maxima: string | null
   fecha_finalizacion: string | null
   fecha_retiro: string | null
+  fecha_notificacion?: string | null
+  fecha_muestra_enviada?: string | null
   precio_final: number
   precio_base: number | null
   descuento_tipo: TipoDescuento | null
@@ -68,6 +72,8 @@ export const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {
   PARA_RETIRAR: 'Para retirar',
   RETIRADO: 'Retirado',
   CANCELADO: 'Cancelado',
+  PENDIENTE_NOTIFICACION: 'Pendiente de notificación',
+  FINALIZADO: 'Finalizado',
 }
 
 export const ETIQUETAS_ESTADO_FINANCIERO: Record<EstadoFinanciero, string> = {

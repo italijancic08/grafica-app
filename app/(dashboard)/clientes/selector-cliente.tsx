@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { crearCliente } from '@/lib/services/clientes'
 import type { Cliente } from '@/lib/types/cliente'
+import FormularioCliente from './formulario-cliente'
 
 function normalizar(texto: string) {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -22,12 +22,6 @@ export default function SelectorCliente({
   const [abierto, setAbierto] = useState(false)
 
   const [mostrarClienteNuevo, setMostrarClienteNuevo] = useState(false)
-  const [nombreClienteNuevo, setNombreClienteNuevo] = useState('')
-  const [telefonoClienteNuevo, setTelefonoClienteNuevo] = useState('')
-  const [cuitCuilClienteNuevo, setCuitCuilClienteNuevo] = useState('')
-  const [localidadClienteNuevo, setLocalidadClienteNuevo] = useState('')
-  const [creandoCliente, setCreandoCliente] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const seleccionado = lista.find((c) => c.id === clienteId)
 
@@ -45,31 +39,10 @@ export default function SelectorCliente({
     setAbierto(false)
   }
 
-  async function handleCrearClienteRapido() {
-    setError(null)
-    setCreandoCliente(true)
-
-    const resultado = await crearCliente({
-      nombre_razon_social: nombreClienteNuevo,
-      telefono: telefonoClienteNuevo,
-      cuit_cuil: cuitCuilClienteNuevo,
-      localidad: localidadClienteNuevo,
-    })
-
-    setCreandoCliente(false)
-
-    if (resultado.error || !resultado.data) {
-      setError(resultado.error ?? 'No se pudo crear el cliente')
-      return
-    }
-
-    setLista((prev) => [...prev, resultado.data])
-    seleccionar(resultado.data.id)
+  function handleClienteCreado(nuevo: Cliente) {
+    setLista((prev) => [...prev, nuevo])
+    seleccionar(nuevo.id)
     setMostrarClienteNuevo(false)
-    setNombreClienteNuevo('')
-    setTelefonoClienteNuevo('')
-    setCuitCuilClienteNuevo('')
-    setLocalidadClienteNuevo('')
   }
 
   return (
@@ -151,49 +124,11 @@ export default function SelectorCliente({
       </div>
 
       {mostrarClienteNuevo && (
-        <div className="mt-3 flex flex-wrap items-end gap-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Nombre</label>
-            <input
-              value={nombreClienteNuevo}
-              onChange={(e) => setNombreClienteNuevo(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Teléfono</label>
-            <input
-              value={telefonoClienteNuevo}
-              onChange={(e) => setTelefonoClienteNuevo(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">CUIT/CUIL/DNI</label>
-            <input
-              value={cuitCuilClienteNuevo}
-              onChange={(e) => setCuitCuilClienteNuevo(e.target.value)}
-              placeholder="20-12345678-9"
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Localidad</label>
-            <input
-              value={localidadClienteNuevo}
-              onChange={(e) => setLocalidadClienteNuevo(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleCrearClienteRapido}
-            disabled={creandoCliente || !nombreClienteNuevo}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {creandoCliente ? 'Creando...' : 'Crear y usar'}
-          </button>
-          {error && <p className="w-full text-sm text-red-600">{error}</p>}
+        <div className="mt-3">
+          <FormularioCliente
+            onCreado={handleClienteCreado}
+            onCancelar={() => setMostrarClienteNuevo(false)}
+          />
         </div>
       )}
     </div>

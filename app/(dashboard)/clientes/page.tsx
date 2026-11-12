@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { listarClientes } from '@/lib/services/clientes'
-import { listarEmpresasClientes } from '@/lib/services/empresas-clientes'
 import FormularioClienteRapido from './formulario-cliente-rapido'
 import BuscadorClientes from './buscador-clientes'
-import PestanasClientes from './pestanas-clientes'
 
 export default async function ClientesPage({
   searchParams,
@@ -12,19 +10,16 @@ export default async function ClientesPage({
 }) {
   const { q } = await searchParams
   const { data: clientes, error } = await listarClientes(q)
-  const { data: empresas } = await listarEmpresasClientes()
 
   return (
     <div className="p-6">
       <h1 className="mb-6 text-xl font-semibold text-gray-900">Clientes</h1>
 
-      <PestanasClientes activa="clientes" />
-
       <div className="mb-4 flex items-center justify-between gap-4">
         <BuscadorClientes />
       </div>
 
-      <FormularioClienteRapido empresas={empresas ?? []} />
+      <FormularioClienteRapido />
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -33,7 +28,7 @@ export default async function ClientesPage({
               <th className="px-4 py-2 text-left font-medium text-gray-500">Nombre / Razón social</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Empresa</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Teléfono</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">CUIT/CUIL/DNI</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">CUIT/DNI</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Localidad</th>
               <th className="px-4 py-2"></th>
             </tr>

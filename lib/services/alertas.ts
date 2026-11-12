@@ -7,7 +7,7 @@ import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
 export async function obtenerAlertas() {
   const supabase = await createClient()
 
-  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas, pagosSinComprobante] = await Promise.all([
+  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas, pagosSinComprobante, trabajosSinNotificar] = await Promise.all([
     supabase.from('materiales_stock_bajo').select('id, nombre, cantidad_actual, unidad_medida, stock_minimo'),
     supabase.from('trabajos_demorados').select('id, numero, fecha_maxima'),
     supabase.from('trabajos_no_retirados').select('id, numero, fecha_maxima'),
@@ -19,6 +19,11 @@ export async function obtenerAlertas() {
       .eq('medio_pago', 'transferencia')
       .is('comprobante_url', null)
       .eq('comprobante_exento', false),
+    // Trabajos finalizados a los que todavía no se les avisó al cliente
+    supabase
+      .from('trabajos')
+      .select('id, numero, fecha_finalizacion')
+      .eq('estado_operativo', 'PENDIENTE_NOTIFICACION'),
   ])
 
   if (stockBajo.error) return { error: stockBajo.error.message }
@@ -26,6 +31,7 @@ export async function obtenerAlertas() {
   if (trabajosNoRetirados.error) return { error: trabajosNoRetirados.error.message }
   if (tercerizacionesDemoradas.error) return { error: tercerizacionesDemoradas.error.message }
   if (pagosSinComprobante.error) return { error: pagosSinComprobante.error.message }
+  if (trabajosSinNotificar.error) return { error: trabajosSinNotificar.error.message }
 
   const alertas: Alerta[] = []
 
@@ -73,6 +79,15 @@ export async function obtenerAlertas() {
       mensaje: `La transferencia de ${formatearMoneda(p.importe)} del ${formatearFecha(p.fecha)} (trabajo ${trabajoRel?.numero ?? ''}) no tiene comprobante cargado`,
       fecha: p.fecha,
       urlDetalle: `/trabajos/${p.trabajo_id}`,
+    })
+  }
+
+  for (const t of trabajosSinNotificar.data ?? []) {
+    alertas.push({
+      tipo: 'TRABAJO_SIN_NOTIFICAR',
+      mensaje: `El trabajo ${t.numero} está finalizado${t.fecha_finalizacion ? ` desde el ${formatearFecha(t.fecha_finalizacion)}` : ''} y falta notificar al cliente`,
+      fecha: t.fecha_finalizacion,
+      urlDetalle: `/trabajos/${t.id}`,
     })
   }
 

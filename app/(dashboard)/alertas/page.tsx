@@ -5,6 +5,7 @@ import { ETIQUETAS_TIPO_ALERTA, type TipoAlerta } from '@/lib/types/alerta'
 const COLOR_POR_TIPO: Record<TipoAlerta, string> = {
   STOCK_BAJO: 'bg-blue-100 text-blue-800',
   TRABAJO_DEMORADO: 'bg-red-100 text-red-800',
+  TRABAJO_SIN_NOTIFICAR: 'bg-yellow-100 text-yellow-800',
   TRABAJO_NO_RETIRADO: 'bg-yellow-100 text-yellow-800',
   TERCERIZACION_DEMORADA: 'bg-orange-100 text-orange-800',
   PAGO_SIN_COMPROBANTE: 'bg-purple-100 text-purple-800',

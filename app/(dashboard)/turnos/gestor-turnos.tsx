@@ -7,12 +7,8 @@ import {
   actualizarTurno,
   crearInstalador,
 } from '@/lib/services/trabajos'
-import {
-  ETIQUETAS_ESTADO_OPERATIVO,
-  type EstadoOperativo,
-} from '@/lib/types/trabajo'
+import type { EstadoOperativo } from '@/lib/types/trabajo'
 import { formatearMoneda } from '@/lib/utils/formato'
-import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 
 type Instalador = {
   id: string
@@ -43,7 +39,12 @@ type Turno = {
   }
 }
 
-const ESTADOS_TURNO: EstadoOperativo[] = ESTADOS_DE_TRABAJO
+const ESTADOS_TURNO = [
+  { valor: 'PENDIENTE', etiqueta: 'Pendiente' },
+  { valor: 'CONFIRMADO', etiqueta: 'Confirmado' },
+  { valor: 'REALIZADO', etiqueta: 'Realizado' },
+  { valor: 'CANCELADO', etiqueta: 'Cancelado' },
+]
 
 export default function GestorTurnos({
   turnos,
@@ -103,9 +104,7 @@ export default function GestorTurnos({
         instalador_id: String(
           form.get('instalador_id') ?? ''
         ),
-        estado: String(
-          form.get('estado') ?? turno.trabajos.estado_operativo
-        ),
+        estado: String(form.get('estado') ?? turno.estado),
       })
 
       if (resultado.error) {
@@ -288,17 +287,15 @@ export default function GestorTurnos({
                   </label>
 
                   <label className="text-xs text-gray-500">
-                    Estado del trabajo
+                    Estado del turno
                     <select
                       name="estado"
-                      defaultValue={
-                        turno.trabajos.estado_operativo
-                      }
+                      defaultValue={turno.estado}
                       className="mt-1 w-full rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-800"
                     >
                       {ESTADOS_TURNO.map((estado) => (
-                        <option key={estado} value={estado}>
-                          {ETIQUETAS_ESTADO_OPERATIVO[estado]}
+                        <option key={estado.valor} value={estado.valor}>
+                          {estado.etiqueta}
                         </option>
                       ))}
                     </select>
@@ -322,9 +319,9 @@ export default function GestorTurnos({
       </section>
 
       <p className="text-xs text-gray-500">
-        Los turnos y los trabajos comparten el mismo estado
-        operativo. Los cambios realizados acá también se
-        reflejan en la sección Trabajos.
+        El estado del turno es independiente del estado del
+        trabajo: el trabajo sigue su curso (En producción,
+        Finalizado, etc.) desde su propia ficha.
       </p>
     </div>
   )

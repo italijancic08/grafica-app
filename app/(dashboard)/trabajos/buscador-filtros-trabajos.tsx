@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
-import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
+import { ESTADOS_EN_LISTA_DE_TRABAJOS, ESTADOS_PRINCIPALES } from '@/lib/utils/estados-trabajo'
 import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 
 export default function BuscadorFiltrosTrabajos({
@@ -105,7 +105,9 @@ export default function BuscadorFiltrosTrabajos({
             <Link href={hrefEstado(null)} className={pastilla(!estadoActivo)}>
               Todos ({total})
             </Link>
-            {ESTADOS_DE_TRABAJO.map((e) => (
+            {ESTADOS_EN_LISTA_DE_TRABAJOS.filter(
+              (e) => ESTADOS_PRINCIPALES.includes(e) || (conteos[e] ?? 0) > 0
+            ).map((e) => (
               <Link key={e} href={hrefEstado(e)} className={pastilla(estadoActivo === e)}>
                 {ETIQUETAS_ESTADO_OPERATIVO[e]} ({conteos[e] ?? 0})
               </Link>

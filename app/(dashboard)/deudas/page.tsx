@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { listarConDeuda } from '@/lib/services/trabajos'
 import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
 
 export default async function DeudasPage() {
   const { data: trabajos, error } = await listarConDeuda()
@@ -12,9 +13,9 @@ export default async function DeudasPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
 
-<h1 className="text-xl font-semibold text-gray-900">Deudores</h1>
+<h1 className="text-xl font-semibold text-gray-900">Pendientes de pago</h1>
 <p className="text-sm text-gray-500">
-  Trabajos retirados con saldo pendiente de pago.
+  Trabajos finalizados con saldo pendiente de pago.
 </p>
 
         </div>
@@ -32,8 +33,8 @@ export default async function DeudasPage() {
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Teléfono</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Precio</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Saldo</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de notificación</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Saldo pendiente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">F. entrada</th>
             </tr>
           </thead>
@@ -54,11 +55,11 @@ export default async function DeudasPage() {
                 
 <td className="px-4 py-2">
   <span className="text-sm font-medium text-orange-600">
-    Retirado con deuda
+    {ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}
   </span>
 </td>
 
-                <td className="px-4 py-2">{formatearMoneda(t.precio_final)}</td>
+                <td className="px-4 py-2">{formatearFecha(t.fecha_notificacion ?? t.fecha_retiro ?? null)}</td>
                 <td className="px-4 py-2 font-medium text-red-600">{formatearMoneda(t.saldo)}</td>
                 <td className="px-4 py-2">{formatearFecha(t.fecha_entrada)}</td>
               </tr>

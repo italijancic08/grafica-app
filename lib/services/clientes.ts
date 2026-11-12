@@ -53,6 +53,10 @@ export async function crearCliente(input: ClienteInput) {
     return { error: parsed.error.issues[0].message }
   }
 
+  if (!parsed.data.telefono?.trim()) {
+    return { error: 'El teléfono es obligatorio' }
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

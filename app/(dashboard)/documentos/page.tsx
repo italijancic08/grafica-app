@@ -103,7 +103,7 @@ export default async function DocumentosPage() {
 
       {errorFacturas && (
         <p className="mb-6 text-sm text-red-600">
-          Error al cargar las facturas:{' '}
+          Error al cargar los recibos:{' '}
           {errorFacturas}
         </p>
       )}

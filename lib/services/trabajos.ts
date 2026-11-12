@@ -6,16 +6,18 @@ import { revalidatePath } from 'next/cache'
 import type { EstadoOperativo } from '@/lib/types/trabajo'
 import { fechaHoyArgentina } from '@/lib/utils/formato'
 import { calcularPrecioConDescuento } from '@/lib/utils/descuento'
-import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
 import { generarComprobante } from '@/lib/services/facturas'
 
-export async function listarTrabajos(estados?: EstadoOperativo[]) {
+export async function listarTrabajos(
+  estados?: EstadoOperativo[],
+  antiguosPrimero: boolean = false
+) {
   const supabase = await createClient()
 
   let query = supabase
     .from('trabajos_con_saldo')
     .select('*, clientes(nombre_razon_social, telefono), empresas_clientes(nombre)')
-    .order('creado_en', { ascending: false })
+    .order('creado_en', { ascending: antiguosPrimero })
 
   if (estados && estados.length > 0) {
     query = query.in('estado_operativo', estados)
@@ -251,6 +253,25 @@ export async function cambiarEstadoTrabajo(
     return { error: 'No se encontró el trabajo' }
   }
 
+  // Guardar el mismo estado no cambia nada
+  if (nuevoEstado === trabajoActual.estado_operativo) {
+    return { success: true }
+  }
+
+  // Estados cerrados: ya no admiten cambios
+  if (['FINALIZADO', 'RETIRADO', 'CANCELADO'].includes(trabajoActual.estado_operativo)) {
+    return { error: 'Este trabajo ya está cerrado y no admite cambios de estado.' }
+  }
+
+  // Finalizar tiene su propio flujo (pregunta si se notificó al cliente)
+  if (nuevoEstado === 'FINALIZADO' || nuevoEstado === 'PENDIENTE_NOTIFICACION') {
+    return { error: 'Para finalizar un trabajo usá el botón "Finalizado" de su ficha.' }
+  }
+
+  if (trabajoActual.estado_operativo === 'PENDIENTE_NOTIFICACION' && nuevoEstado !== 'CANCELADO') {
+    return { error: 'Este trabajo espera la notificación al cliente. Usá "Notificar al cliente" en su ficha.' }
+  }
+
   // "A coordinar" y "Turno agendado" solo tienen sentido en trabajos con turno
   if (
     (nuevoEstado === 'A_COORDINAR' || nuevoEstado === 'TURNO_AGENDADO') &&
@@ -327,6 +348,161 @@ export async function cambiarEstadoTrabajo(
   return { success: true }
 }
 
+// Estados desde los que se puede finalizar un trabajo
+const ESTADOS_FINALIZABLES: EstadoOperativo[] = [
+  'INGRESADO',
+  'EN_PRODUCCION',
+  'TERCERIZADO',
+  'TERMINADO',
+  'A_COORDINAR',
+  'TURNO_AGENDADO',
+  'PARA_RETIRAR',
+]
+
+// Botón "Finalizado" de la ficha. notificado = respuesta a "¿Notificaste al cliente?"
+//   SÍ -> queda FINALIZADO con la fecha de notificación y se genera el recibo
+//   NO -> queda PENDIENTE_NOTIFICACION (sigue visible en Trabajos)
+export async function finalizarTrabajo(trabajoId: string, notificado: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: actual, error: errorActual } = await supabase
+    .from('trabajos')
+    .select('estado_operativo, fecha_finalizacion')
+    .eq('id', trabajoId)
+    .single()
+
+  if (errorActual || !actual) return { error: 'No se encontró el trabajo' }
+
+  if (!ESTADOS_FINALIZABLES.includes(actual.estado_operativo as EstadoOperativo)) {
+    return { error: 'Este trabajo no se puede finalizar desde su estado actual.' }
+  }
+
+  const hoy = fechaHoyArgentina()
+  const nuevoEstado: EstadoOperativo = notificado ? 'FINALIZADO' : 'PENDIENTE_NOTIFICACION'
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      estado_operativo: nuevoEstado,
+      // Si ya tenía fecha de finalización (trabajos viejos), se respeta
+      fecha_finalizacion: actual.fecha_finalizacion ?? hoy,
+      ...(notificado ? { fecha_notificacion: hoy } : {}),
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', trabajoId)
+    .eq('estado_operativo', actual.estado_operativo)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'cambiar_estado',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { de: actual.estado_operativo, a: nuevoEstado, cliente_notificado: notificado },
+  })
+
+  revalidatePath('/')
+  revalidatePath('/trabajos')
+  revalidatePath('/deudas')
+  revalidatePath(`/trabajos/${trabajoId}`)
+
+  // El recibo se genera cuando el cliente ya fue notificado. Si falla no
+  // revertimos el cambio de estado: solo avisamos.
+  if (notificado) {
+    const resultadoComprobante = await generarComprobante(trabajoId)
+    if (resultadoComprobante.error) {
+      return { success: true, avisoComprobante: resultadoComprobante.error }
+    }
+  }
+
+  return { success: true }
+}
+
+// Botón "Notificar al cliente" de un trabajo en PENDIENTE_NOTIFICACION
+export async function notificarCliente(trabajoId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: actual, error: errorActual } = await supabase
+    .from('trabajos')
+    .select('estado_operativo')
+    .eq('id', trabajoId)
+    .single()
+
+  if (errorActual || !actual) return { error: 'No se encontró el trabajo' }
+
+  if (actual.estado_operativo !== 'PENDIENTE_NOTIFICACION') {
+    return { error: 'Este trabajo no está pendiente de notificación.' }
+  }
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      estado_operativo: 'FINALIZADO',
+      fecha_notificacion: fechaHoyArgentina(),
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', trabajoId)
+    .eq('estado_operativo', 'PENDIENTE_NOTIFICACION')
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'cambiar_estado',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { de: 'PENDIENTE_NOTIFICACION', a: 'FINALIZADO', cliente_notificado: true },
+  })
+
+  revalidatePath('/')
+  revalidatePath('/trabajos')
+  revalidatePath('/deudas')
+  revalidatePath(`/trabajos/${trabajoId}`)
+
+  const resultadoComprobante = await generarComprobante(trabajoId)
+  if (resultadoComprobante.error) {
+    return { success: true, avisoComprobante: resultadoComprobante.error }
+  }
+
+  return { success: true }
+}
+
+// "Muestra enviada": guarda la fecha en que se le mandó la muestra al cliente.
+// fecha = null quita la marca.
+export async function marcarMuestraEnviada(trabajoId: string, fecha: string | null) {
+  if (fecha !== null && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return { error: 'Fecha inválida.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { error } = await supabase
+    .from('trabajos')
+    .update({
+      fecha_muestra_enviada: fecha,
+      modificado_en: new Date().toISOString(),
+    })
+    .eq('id', trabajoId)
+
+  if (error) return { error: error.message }
+
+  await supabase.from('auditoria').insert({
+    usuario_id: user?.id,
+    accion: 'editar',
+    entidad: 'trabajo',
+    entidad_id: trabajoId,
+    detalle: { muestra_enviada: fecha },
+  })
+
+  revalidatePath('/trabajos')
+  revalidatePath(`/trabajos/${trabajoId}`)
+  return { success: true }
+}
+
 export async function listarParaRetirar() {
   return listarTrabajos(['TERMINADO', 'PARA_RETIRAR'])
 }
@@ -338,7 +514,7 @@ export async function listarConDeuda() {
     .from('trabajos_con_saldo')
     .select('*, clientes(nombre_razon_social, telefono, whatsapp), empresas_clientes(nombre, telefono)')
     .gt('saldo', 0)
-    .eq('estado_operativo', 'RETIRADO')
+    .in('estado_operativo', ['FINALIZADO', 'RETIRADO'])
     .order('saldo', { ascending: false })
 
   if (error) return { error: error.message }
@@ -379,7 +555,7 @@ export async function aceptarPresupuesto(trabajoId: string) {
   const { data, error } = await supabase
     .from('trabajos')
     .update({
-      estado_operativo: 'INGRESADO',
+      estado_operativo: 'EN_PRODUCCION',
       fecha_entrada: fechaHoyArgentina(),
       modificado_en: new Date().toISOString(),
     })
@@ -495,6 +671,8 @@ export async function listarTurnos() {
   return { data: turnos }
 }
 
+// Estados propios del turno (independientes del estado del trabajo)
+const ESTADOS_DE_TURNO = ['PENDIENTE', 'CONFIRMADO', 'REALIZADO', 'CANCELADO']
 
 export async function actualizarTurno(input: {
   id: string
@@ -504,8 +682,8 @@ export async function actualizarTurno(input: {
   instalador_id: string
   estado: string
 }) {
-  if (!ESTADOS_DE_TRABAJO.includes(input.estado as EstadoOperativo)) {
-    return { error: 'Estado de trabajo inválido.' }
+  if (!ESTADOS_DE_TURNO.includes(input.estado)) {
+    return { error: 'Estado de turno inválido.' }
   }
 
   if (
@@ -520,13 +698,14 @@ export async function actualizarTurno(input: {
 
   const supabase = await createClient()
 
-  // Guardar los datos propios del turno.
+  // Se guardan solo los datos del turno: el estado del trabajo no se toca.
   const { error: errorTurno } = await supabase
     .from('turnos')
     .update({
       fecha: input.fecha || null,
       hora: input.hora || null,
       instalador_id: input.instalador_id || null,
+      estado: input.estado,
       modificado_en: new Date().toISOString(),
     })
     .eq('id', input.id)
@@ -535,35 +714,8 @@ export async function actualizarTurno(input: {
     return { error: errorTurno.message }
   }
 
-  // El estado se modifica en el trabajo asociado.
-  // Turnos mostrará ese mismo estado.
-  // Con día y hora cargados, "A coordinar" pasa solo a "Turno agendado";
-  // si se borran, un turno agendado vuelve a "A coordinar".
-  let estadoFinal = input.estado as EstadoOperativo
-  if (estadoFinal === 'A_COORDINAR' && input.fecha && input.hora) {
-    estadoFinal = 'TURNO_AGENDADO'
-  } else if (estadoFinal === 'TURNO_AGENDADO' && !input.fecha && !input.hora) {
-    estadoFinal = 'A_COORDINAR'
-  }
-
-  const resultadoEstado = await cambiarEstadoTrabajo(
-    input.trabajo_id,
-    estadoFinal
-  )
-
-  if (resultadoEstado.error) {
-    return { error: resultadoEstado.error }
-  }
-
-  if (resultadoEstado.requiereConfirmacion) {
-    return {
-      error:
-        'El trabajo tiene saldo pendiente. Gestioná el retiro desde la ficha del trabajo para confirmar si corresponde.',
-    }
-  }
-
+  revalidatePath('/')
   revalidatePath('/turnos')
-  revalidatePath('/trabajos')
   revalidatePath(`/trabajos/${input.trabajo_id}`)
 
   return { success: true }

@@ -7,13 +7,10 @@ import {
   Wallet,
   WalletCards,
   Truck,
-  Boxes,
   Banknote,
-  Calculator,
   FileSpreadsheet,
   Bell,
   Settings,
-  Tags,
   CalendarDays,
   Search,
   Clock3,
@@ -48,14 +45,11 @@ const MODULOS: Modulo[] = [
   { nombre: 'Presupuestos', href: '/presupuestos', icono: FileSpreadsheet },
   { nombre: 'Turnos', href: '/turnos', icono: CalendarDays },
   { nombre: 'Para retirar', href: '/para-retirar', icono: PackageCheck },
-  { nombre: 'Deudores', href: '/deudas', icono: Wallet },
+  { nombre: 'Pendientes de pago', href: '/deudas', icono: Wallet },
   { nombre: 'Caja', href: '/caja', icono: Banknote },
   { nombre: 'Fichaje', href: '/fichaje', icono: Clock3 },
-  { nombre: 'Stock', href: '/stock', icono: Boxes },
-  { nombre: 'Listas', href: '/lista-precios', icono: Tags },
   { nombre: 'Tercerizaciones', href: '/tercerizados', icono: Truck },
-  { nombre: 'Calculadoras', href: '/calculadoras', icono: Calculator },
-  { nombre: 'Facturas', href: '/facturas', icono: Receipt },
+  { nombre: 'Recibos', href: '/facturas', icono: Receipt },
   { nombre: 'Notificaciones', href: '/alertas', icono: Bell },
 ]
 
@@ -263,7 +257,7 @@ export default async function DashboardPage() {
           className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
         >
           <p className="text-xs font-medium text-gray-600">
-            Deudores
+            Pendientes de pago
           </p>
 
           <p className="mt-1 text-3xl font-semibold text-gray-900">
@@ -309,6 +303,20 @@ export default async function DashboardPage() {
           </p>
         </Link>
 
+        {/* Tercerizaciones en curso */}
+        <Link
+          href="/tercerizados"
+          className="min-w-0 rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
+        >
+          <p className="text-xs font-medium text-gray-600">
+            Tercerizaciones
+          </p>
+
+          <p className="mt-1 text-3xl font-semibold text-gray-900">
+            {resumen.tercerizacionesEnCurso}
+          </p>
+        </Link>
+
         {/* Buscador de clientes */}
         <div className="flex min-w-0 flex-col justify-center rounded-xl bg-gray-200/70 p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -323,10 +331,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Próximo turno */}
-        <Link
-          href="/turnos"
-          className="flex min-w-0 flex-col rounded-xl bg-gray-200/70 p-4 transition-colors hover:bg-gray-200"
-        >
+        <div className="flex min-w-0 flex-col rounded-xl bg-gray-200/70 p-4">
           <div className="flex items-center gap-2">
             <CalendarDays size={16} className="text-gray-600" />
 
@@ -365,7 +370,15 @@ export default async function DashboardPage() {
               No hay turnos próximos
             </p>
           )}
-        </Link>
+
+          <Link
+            href="/turnos"
+            className="mt-3 inline-flex w-fit items-center gap-2 rounded-full bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+          >
+            <CalendarDays size={16} strokeWidth={1.75} />
+            Cargar turnos
+          </Link>
+        </div>
       </div>
 
       {/* Accesos directos */}
