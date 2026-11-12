@@ -1,19 +1,10 @@
 import Link from 'next/link'
 import { listarTrabajos } from '@/lib/services/trabajos'
-import { ESTADOS_DE_TRABAJO } from '@/lib/utils/estados-trabajo'
-import { ETIQUETAS_ESTADO_OPERATIVO, ETIQUETAS_ESTADO_FINANCIERO } from '@/lib/types/trabajo'
-import { formatearMoneda, formatearFecha } from '@/lib/utils/formato'
+import { ESTADOS_EN_LISTA_DE_TRABAJOS } from '@/lib/utils/estados-trabajo'
+import { ETIQUETAS_ESTADO_OPERATIVO } from '@/lib/types/trabajo'
+import { formatearFecha } from '@/lib/utils/formato'
 import { filtrarTrabajosPorBusqueda } from '@/lib/utils/buscar-trabajos'
 import BuscadorFiltrosTrabajos from './buscador-filtros-trabajos'
-
-function badgeFinanciero(estado: string) {
-  const colores: Record<string, string> = {
-    SIN_PAGAR: 'bg-red-100 text-red-700',
-    PAGO_PARCIAL: 'bg-yellow-100 text-yellow-700',
-    PAGADO: 'bg-green-100 text-green-700',
-  }
-  return colores[estado] ?? 'bg-gray-100 text-gray-700'
-}
 
 export default async function TrabajosPage({
   searchParams,
@@ -22,11 +13,12 @@ export default async function TrabajosPage({
 }) {
   const { estado, q } = await searchParams
   const busqueda = (q ?? '').trim()
-  // Si el parámetro no es un estado válido, se muestran todos
-  const estadoFiltro = ESTADOS_DE_TRABAJO.find((e) => e === estado) ?? null
+  // Si el parámetro no es un estado válido de la lista, se muestran todos
+  const estadoFiltro = ESTADOS_EN_LISTA_DE_TRABAJOS.find((e) => e === estado) ?? null
 
-  // Los presupuestos y rechazados se ven en /presupuestos
-  const { data: todos, error } = await listarTrabajos(ESTADOS_DE_TRABAJO)
+  // Se ven solo los trabajos en curso, los más viejos arriba (por fecha de carga).
+  // Los presupuestos se ven en /presupuestos; los finalizados, en el historial del cliente.
+  const { data: todos, error } = await listarTrabajos(ESTADOS_EN_LISTA_DE_TRABAJOS, true)
 
   // La búsqueda se aplica primero; los contadores de estado reflejan sus resultados
   const coincidentes = busqueda && todos ? filtrarTrabajosPorBusqueda(todos, busqueda) : todos
@@ -35,7 +27,7 @@ export default async function TrabajosPage({
     : coincidentes
 
   const conteos: Record<string, number> = {}
-  for (const e of ESTADOS_DE_TRABAJO) {
+  for (const e of ESTADOS_EN_LISTA_DE_TRABAJOS) {
     conteos[e] = coincidentes?.filter((t) => t.estado_operativo === e).length ?? 0
   }
 
@@ -67,28 +59,25 @@ export default async function TrabajosPage({
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Número</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Orden Nº</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de ingreso</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Descripción</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Pago</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Precio</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Saldo</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Plazo de entrega</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
               <tr>
-                <td colSpan={8} className="px-4 py-3 text-red-600">{error}</td>
+                <td colSpan={5} className="px-4 py-3 text-red-600">{error}</td>
               </tr>
             )}
             {trabajos?.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-3 text-gray-500">
+                <td colSpan={5} className="px-4 py-3 text-gray-500">
                   {estadoFiltro || busqueda
                     ? 'No hay trabajos que coincidan con la búsqueda o los filtros.'
-                    : 'Sin trabajos todavía.'}
+                    : 'No hay trabajos en curso.'}
                 </td>
               </tr>
             )}
@@ -97,6 +86,7 @@ export default async function TrabajosPage({
                 <td className="px-4 py-2 font-medium">
                   <Link href={`/trabajos/${t.id}`} className="hover:underline">{t.numero}</Link>
                 </td>
+                <td className="px-4 py-2">{formatearFecha(t.fecha_entrada)}</td>
                 <td className="px-4 py-2">
                   {t.clientes?.nombre_razon_social ?? t.empresas_clientes?.nombre}
                   {t.clientes && t.empresas_clientes && (
@@ -105,16 +95,6 @@ export default async function TrabajosPage({
                 </td>
                 <td className="px-4 py-2 max-w-xs truncate">{t.descripcion}</td>
                 <td className="px-4 py-2">{ETIQUETAS_ESTADO_OPERATIVO[t.estado_operativo as keyof typeof ETIQUETAS_ESTADO_OPERATIVO]}</td>
-                <td className="px-4 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeFinanciero(t.estado_financiero)}`}>
-                    {ETIQUETAS_ESTADO_FINANCIERO[t.estado_financiero as keyof typeof ETIQUETAS_ESTADO_FINANCIERO]}
-                  </span>
-                </td>
-                <td className="px-4 py-2">{formatearMoneda(t.precio_final)}</td>
-                <td className={`px-4 py-2 ${t.saldo > 0 ? 'text-red-600 font-medium' : ''}`}>
-                  {formatearMoneda(t.saldo)}
-                </td>
-                <td className="px-4 py-2">{formatearFecha(t.fecha_maxima)}</td>
               </tr>
             ))}
           </tbody>
