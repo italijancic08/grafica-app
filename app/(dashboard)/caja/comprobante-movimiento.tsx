@@ -9,7 +9,7 @@ import { subirComprobanteMovimientoCaja } from '@/lib/utils/subir-comprobante-ca
 import { subirComprobantePago } from '@/lib/utils/subir-comprobante-pago'
 import type { MovimientoCaja } from '@/lib/types/caja'
 
-// Estado del comprobante de un movimiento de caja por transferencia: permite
+// Estado del comprobante de un movimiento de caja (transferencias y egresos): permite
 // verlo y adjuntarlo (o reemplazarlo) en cualquier momento, incluso con el mes
 // cerrado, porque no modifica ningún importe.
 //
@@ -27,9 +27,16 @@ export default function ComprobanteMovimiento({ movimiento }: { movimiento: Movi
   const esDePago = Boolean(pagoId && trabajoId)
 
   const rutaActual = esDePago ? movimiento.pagos?.comprobante_url ?? null : movimiento.comprobante_url
-  // Solo los pagos anteriores a la función de comprobantes están "exentos".
-  // Los movimientos manuales sin comprobante se muestran en gris (es opcional).
-  const exento = esDePago ? movimiento.pagos?.comprobante_exento ?? false : true
+  // "Exento" = sin comprobante pero sin alerta (se muestra en gris):
+  // - pagos anteriores a la función de comprobantes,
+  // - egresos manuales anteriores a que el RC fuera opcional con alerta,
+  // - ingresos manuales (el comprobante es opcional y no genera alerta).
+  // Un egreso manual nuevo sin comprobante se muestra en amarillo (hay alerta).
+  const exento = esDePago
+    ? movimiento.pagos?.comprobante_exento ?? false
+    : movimiento.tipo === 'egreso'
+      ? movimiento.comprobante_exento ?? false
+      : true
 
   async function handleVer() {
     if (!rutaActual) return

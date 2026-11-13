@@ -93,11 +93,6 @@ export default function FormularioMovimientoCaja({
     e.preventDefault()
     setError(null)
 
-    if (esEgreso && !archivo) {
-      setError('En las salidas de dinero es obligatorio adjuntar el comprobante (RC).')
-      return
-    }
-
     if (esMixto && !(Number(montoEfectivo) > 0 && Number(montoTransferencia) > 0)) {
       setError('En un pago mixto ingresá tanto el importe en efectivo como el de transferencia.')
       return
@@ -261,11 +256,7 @@ export default function FormularioMovimientoCaja({
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-700">
             Comprobante (RC){' '}
-            {esEgreso ? (
-              <span className="font-semibold text-red-600">obligatorio</span>
-            ) : (
-              <span className="font-normal text-gray-400">(opcional)</span>
-            )}
+            <span className="font-normal text-gray-400">(opcional)</span>
           </label>
           <input
             key={claveArchivo}
@@ -274,6 +265,11 @@ export default function FormularioMovimientoCaja({
             onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
             className="block w-56 text-xs text-gray-600 file:mr-2 file:rounded-md file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:font-medium file:text-gray-700"
           />
+          {esEgreso && !archivo && (
+            <p className="mt-1 w-56 text-xs text-yellow-700">
+              Sin comprobante quedará una alerta en Notificaciones hasta que lo adjuntes.
+            </p>
+          )}
         </div>
       )}
 

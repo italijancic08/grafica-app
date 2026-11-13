@@ -72,11 +72,8 @@ export async function registrarMovimientoManual(input: MovimientoCajaNuevoInput)
   }
 
   if (parsed.data.tipo === 'egreso') {
-    // El RC es obligatorio en toda salida de dinero, sin excepción
-    if (!parsed.data.comprobante_url) {
-      return { error: 'En las salidas de dinero es obligatorio adjuntar el comprobante (RC).' }
-    }
-
+    // El RC es opcional: si falta, aparece una alerta en Notificaciones
+    // hasta que se adjunte (ver obtenerAlertas).
     const rubro = parsed.data.rubro as Rubro
     const rubroSoloAdmin = RUBROS_EGRESO_SOLO_ADMIN.includes(rubro)
 

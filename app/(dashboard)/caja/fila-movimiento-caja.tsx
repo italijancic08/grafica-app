@@ -177,7 +177,9 @@ export default function FilaMovimientoCaja({
       <td className="px-4 py-2">{movimiento.rubro ? ETIQUETAS_RUBRO[movimiento.rubro] : '—'}</td>
       <td className="px-4 py-2">
         {movimiento.medio_pago ? ETIQUETAS_MEDIO_PAGO[movimiento.medio_pago] : '—'}
-        {movimiento.medio_pago === 'transferencia' && <ComprobanteMovimiento movimiento={movimiento} />}
+        {(movimiento.medio_pago === 'transferencia' || (movimiento.tipo === 'egreso' && !movimiento.pago_id)) && (
+          <ComprobanteMovimiento movimiento={movimiento} />
+        )}
       </td>
       <td className="px-4 py-2">{movimiento.concepto}</td>
       <td className="px-4 py-2">{movimiento.trabajos?.numero ?? '—'}</td>

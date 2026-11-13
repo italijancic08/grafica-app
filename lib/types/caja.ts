@@ -26,6 +26,7 @@ export interface MovimientoCaja {
   rubro: Rubro | null
   pago_id: string | null
   comprobante_url: string | null
+  comprobante_exento?: boolean
   trabajos?: { numero: string } | null
   pagos?: { comprobante_url: string | null; comprobante_exento: boolean } | null
 }

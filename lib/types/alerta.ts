@@ -1,4 +1,4 @@
-export type TipoAlerta = 'STOCK_BAJO' | 'TRABAJO_DEMORADO' | 'TRABAJO_NO_RETIRADO' | 'TRABAJO_SIN_NOTIFICAR' | 'TERCERIZACION_DEMORADA' | 'PAGO_SIN_COMPROBANTE'
+export type TipoAlerta = 'STOCK_BAJO' | 'TRABAJO_DEMORADO' | 'TRABAJO_NO_RETIRADO' | 'TRABAJO_SIN_NOTIFICAR' | 'TERCERIZACION_DEMORADA' | 'PAGO_SIN_COMPROBANTE' | 'EGRESO_SIN_COMPROBANTE'
 
 export interface Alerta {
   tipo: TipoAlerta
@@ -14,4 +14,5 @@ export const ETIQUETAS_TIPO_ALERTA: Record<TipoAlerta, string> = {
   TRABAJO_SIN_NOTIFICAR: 'Falta notificar al cliente',
   TERCERIZACION_DEMORADA: 'Tercerización demorada',
   PAGO_SIN_COMPROBANTE: 'Pago sin comprobante',
+  EGRESO_SIN_COMPROBANTE: 'Egreso sin comprobante',
 }

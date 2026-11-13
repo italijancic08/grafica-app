@@ -7,7 +7,7 @@ import { formatearFecha, formatearMoneda } from '@/lib/utils/formato'
 export async function obtenerAlertas() {
   const supabase = await createClient()
 
-  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas, pagosSinComprobante, trabajosSinNotificar] = await Promise.all([
+  const [stockBajo, trabajosDemorados, trabajosNoRetirados, tercerizacionesDemoradas, pagosSinComprobante, trabajosSinNotificar, egresosSinComprobante] = await Promise.all([
     supabase.from('materiales_stock_bajo').select('id, nombre, cantidad_actual, unidad_medida, stock_minimo'),
     supabase.from('trabajos_demorados').select('id, numero, fecha_maxima'),
     supabase.from('trabajos_no_retirados').select('id, numero, fecha_maxima'),
@@ -24,6 +24,17 @@ export async function obtenerAlertas() {
       .from('trabajos')
       .select('id, numero, fecha_finalizacion')
       .eq('estado_operativo', 'PENDIENTE_NOTIFICACION'),
+    // Salidas de dinero cargadas a mano sin comprobante (RC). Se excluyen los
+    // egresos anteriores a esta función (exentos) y los movimientos
+    // automáticos del cierre de caja (rubro 'caja').
+    supabase
+      .from('caja_movimientos')
+      .select('id, monto, concepto, fecha')
+      .eq('tipo', 'egreso')
+      .is('comprobante_url', null)
+      .is('pago_id', null)
+      .eq('comprobante_exento', false)
+      .neq('rubro', 'caja'),
   ])
 
   if (stockBajo.error) return { error: stockBajo.error.message }
@@ -32,6 +43,7 @@ export async function obtenerAlertas() {
   if (tercerizacionesDemoradas.error) return { error: tercerizacionesDemoradas.error.message }
   if (pagosSinComprobante.error) return { error: pagosSinComprobante.error.message }
   if (trabajosSinNotificar.error) return { error: trabajosSinNotificar.error.message }
+  if (egresosSinComprobante.error) return { error: egresosSinComprobante.error.message }
 
   const alertas: Alerta[] = []
 
@@ -79,6 +91,15 @@ export async function obtenerAlertas() {
       mensaje: `La transferencia de ${formatearMoneda(p.importe)} del ${formatearFecha(p.fecha)} (trabajo ${trabajoRel?.numero ?? ''}) no tiene comprobante cargado`,
       fecha: p.fecha,
       urlDetalle: `/trabajos/${p.trabajo_id}`,
+    })
+  }
+
+  for (const e of egresosSinComprobante.data ?? []) {
+    alertas.push({
+      tipo: 'EGRESO_SIN_COMPROBANTE',
+      mensaje: `La salida de ${formatearMoneda(e.monto)} del ${formatearFecha(e.fecha)} (${e.concepto}) no tiene comprobante cargado`,
+      fecha: e.fecha,
+      urlDetalle: `/caja?mes=${String(e.fecha).slice(0, 7)}`,
     })
   }
 
