@@ -7,7 +7,6 @@ import EditarTercerizacion from './editar-tercerizacion'
 
 export default async function TercerizadosPage() {
   const { data: tercerizaciones, error } = await listarTercerizaciones()
-  const hoy = new Date().toISOString().split('T')[0]
 
   return (
     <div className="p-6">
@@ -21,8 +20,7 @@ export default async function TercerizadosPage() {
               <th className="px-4 py-2 text-left font-medium text-gray-500">Cliente</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Proveedor</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Código</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Envío</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Vuelta estimada</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha de envío</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Costo</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Estado</th>
               <th className="px-4 py-2"></th>
@@ -30,53 +28,40 @@ export default async function TercerizadosPage() {
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {error && (
-              <tr><td colSpan={9} className="px-4 py-3 text-red-600">{error}</td></tr>
+              <tr><td colSpan={8} className="px-4 py-3 text-red-600">{error}</td></tr>
             )}
             {tercerizaciones?.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-3 text-gray-500">Sin tercerizaciones registradas.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-3 text-gray-500">Sin tercerizaciones registradas.</td></tr>
             )}
-            {tercerizaciones?.map((tc) => {
-              const demorado =
-                tc.estado !== 'VUELTO' &&
-                tc.fecha_estimada_vuelta &&
-                tc.fecha_estimada_vuelta < hoy
+            {tercerizaciones?.map((tc) => (
+              <tr key={tc.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2 font-medium">
+                  <Link href={`/trabajos/${tc.trabajo_id}`} className="hover:underline">
+                    {tc.trabajos?.numero}
+                  </Link>
+                </td>
+                <td className="px-4 py-2">{tc.trabajos?.clientes?.nombre_razon_social ?? tc.trabajos?.empresas_clientes?.nombre}</td>
+                <td className="px-4 py-2">{tc.proveedor}</td>
+                <td className="px-4 py-2 font-mono text-xs">{tc.codigo_seguimiento || '—'}</td>
+                <td className="px-4 py-2">{formatearFecha(tc.fecha_envio)}</td>
+                <td className="px-4 py-2">{tc.costo ? formatearMoneda(tc.costo) : '—'}</td>
+                <td className="px-4 py-2">
+                  {ETIQUETAS_ESTADO_TERCERIZACION[tc.estado as EstadoTercerizacion]}
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <EditarTercerizacion tercerizacion={tc} />
 
-              return (
-                <tr key={tc.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium">
-                    <Link href={`/trabajos/${tc.trabajo_id}`} className="hover:underline">
-                      {tc.trabajos?.numero}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">{tc.trabajos?.clientes?.nombre_razon_social ?? tc.trabajos?.empresas_clientes?.nombre}</td>
-                  <td className="px-4 py-2">{tc.proveedor}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{tc.codigo_seguimiento || '—'}</td>
-                  <td className="px-4 py-2">{formatearFecha(tc.fecha_envio)}</td>
-                  <td className="px-4 py-2">{formatearFecha(tc.fecha_estimada_vuelta)}</td>
-                  <td className="px-4 py-2">{tc.costo ? formatearMoneda(tc.costo) : '—'}</td>
-                  <td className="px-4 py-2">
-                    <span className={demorado ? 'font-medium text-red-600' : ''}>
-                      {ETIQUETAS_ESTADO_TERCERIZACION[tc.estado as EstadoTercerizacion]}
-                      {demorado && ' (demorado)'}
-                    </span>
-                  </td>
-                  
-<td className="px-4 py-2">
-  <div className="flex flex-wrap items-center gap-2">
-    <EditarTercerizacion tercerizacion={tc} />
-
-    {tc.estado !== 'VUELTO' && (
-      <BotonMarcarVuelta
-        tercerizacionId={tc.id}
-        trabajoId={tc.trabajo_id}
-      />
-    )}
-  </div>
-</td>
-
-                </tr>
-              )
-            })}
+                    {tc.estado !== 'VUELTO' && (
+                      <BotonMarcarVuelta
+                        tercerizacionId={tc.id}
+                        trabajoId={tc.trabajo_id}
+                      />
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

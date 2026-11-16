@@ -20,9 +20,7 @@ export default function EditarTercerizacion({
 
   const [proveedor, setProveedor] = useState(tercerizacion.proveedor)
   const [fechaEnvio, setFechaEnvio] = useState(tercerizacion.fecha_envio)
-  const [fechaEstimada, setFechaEstimada] = useState(
-    tercerizacion.fecha_estimada_vuelta ?? ''
-  )
+
   const [fechaReal, setFechaReal] = useState(
     tercerizacion.fecha_real_vuelta ?? ''
   )
@@ -47,7 +45,7 @@ export default function EditarTercerizacion({
       const resultado = await editarTercerizacion(tercerizacion.id, {
         proveedor,
         fecha_envio: fechaEnvio,
-        fecha_estimada_vuelta: fechaEstimada || null,
+        fecha_estimada_vuelta: tercerizacion.fecha_estimada_vuelta,
         fecha_real_vuelta:
           tercerizacion.estado === 'VUELTO'
             ? fechaReal || null
@@ -115,31 +113,17 @@ export default function EditarTercerizacion({
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Fecha de envío
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={fechaEnvio}
-                    onChange={(e) => setFechaEnvio(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Vuelta estimada
-                  </label>
-                  <input
-                    type="date"
-                    value={fechaEstimada}
-                    onChange={(e) => setFechaEstimada(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  />
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Fecha de envío
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={fechaEnvio}
+                  onChange={(e) => setFechaEnvio(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
               </div>
 
               {tercerizacion.estado === 'VUELTO' && (

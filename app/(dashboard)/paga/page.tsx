@@ -3,6 +3,7 @@ import {
 } from '@/lib/services/liquidaciones'
 
 import DescargarLiquidacion from './descargar-liquidacion'
+import LiquidarPeriodo from './liquidar-periodo'
 import { redirigirSiNoEsAdministrador } from '@/lib/auth/roles'
 
 function dinero(valor: number) {
@@ -51,15 +52,19 @@ export default async function PagaPage() {
       </h1>
 
       <p className="mt-1 text-sm text-gray-500">
-        Liquidaciones semanales de los trabajadores.
+        Liquidaciones de los trabajadores.
       </p>
+
+      <div className="mt-5">
+        <LiquidarPeriodo />
+      </div>
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left font-medium text-gray-500">
-                Semana
+                Período
               </th>
 
               <th className="px-4 py-3 text-left font-medium text-gray-500">
@@ -151,10 +156,11 @@ export default async function PagaPage() {
       </div>
 
       <div className="mt-5 rounded-lg bg-gray-100 p-4 text-sm text-gray-600">
-        La liquidación se genera después del
-        viernes a las 20:00. Si existe un fichaje
-        abierto que continúa hasta el sábado por
-        la mañana, queda pendiente hasta registrar
+        La liquidación semanal se genera sola después
+        del viernes a las 20:00. Además, podés liquidar
+        cuando quieras un período a elección con el
+        bloque de arriba. Si hay un fichaje abierto,
+        la liquidación queda pendiente hasta registrar
         la salida.
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   redondearHoras,
 } from '@/lib/utils/semana-fichaje'
 import { obtenerValorHora } from '@/lib/services/configuracion'
+import { fechaHoyArgentina } from '@/lib/utils/formato'
 import * as XLSX from 'xlsx'
 
 type Fichaje = {
@@ -137,7 +138,8 @@ export async function listarLiquidaciones() {
 export async function generarLiquidacionSemana(
   semanaInicio: string,
   semanaFin: string,
-  permitirIncompleta = false
+  permitirIncompleta = false,
+  finDeDiaCompleto = false
 ) {
   const permisos = await verificarAdministrador()
 
@@ -148,7 +150,12 @@ export async function generarLiquidacionSemana(
   const supabase = createAdminClient()
 
   const inicio = new Date(`${semanaInicio}T00:00:00-03:00`)
-  const fin = new Date(`${semanaFin}T12:00:00-03:00`)
+  // La liquidación semanal automática llega hasta el mediodía del último día
+  // (por los turnos que cruzan al sábado). En un período elegido a mano
+  // se cuenta el último día completo.
+  const fin = new Date(
+    `${semanaFin}T${finDeDiaCompleto ? '23:59:59' : '12:00:00'}-03:00`
+  )
 
   /*
    * Buscamos todos los fichajes cuya entrada pertenece al ciclo.
@@ -530,6 +537,79 @@ export async function generarLiquidacionSemana(
     empleados: empleadosArray,
     fichajesAbiertos,
   }
+}
+
+type ResultadoLiquidacionPeriodo = {
+  success?: boolean
+  error?: string
+  pendiente?: boolean
+  solapamiento?: boolean
+  fichajesAbiertos?: unknown[]
+}
+
+function fechaCorta(fecha: string) {
+  return fecha.split('-').reverse().join('/')
+}
+
+// Liquida un período a elección (desde / hasta, ambos días incluidos).
+export async function liquidarPeriodo(
+  desde: string,
+  hasta: string,
+  opciones?: { permitirIncompleta?: boolean; confirmarSolapamiento?: boolean }
+): Promise<ResultadoLiquidacionPeriodo> {
+  const permisos = await verificarAdministrador()
+
+  if (permisos.error) {
+    return { error: permisos.error }
+  }
+
+  const formato = /^\d{4}-\d{2}-\d{2}$/
+
+  if (!formato.test(desde) || !formato.test(hasta)) {
+    return { error: 'Elegí las dos fechas: desde y hasta.' }
+  }
+
+  if (hasta < desde) {
+    return { error: 'La fecha "hasta" no puede ser anterior a la fecha "desde".' }
+  }
+
+  if (hasta > fechaHoyArgentina()) {
+    return { error: 'No se puede liquidar un período que todavía no empezó a transcurrir.' }
+  }
+
+  // Aviso si el período se superpone con una liquidación ya generada:
+  // esas horas se pagarían dos veces.
+  if (!opciones?.confirmarSolapamiento) {
+    const supabase = await createClient()
+
+    const { data: existentes } = await supabase
+      .from('liquidaciones_semanales')
+      .select('semana_inicio, semana_fin')
+      .lte('semana_inicio', hasta)
+      .gte('semana_fin', desde)
+
+    const otras = (existentes ?? []).filter(
+      (l) => !(l.semana_inicio === desde && l.semana_fin === hasta)
+    )
+
+    if (otras.length > 0) {
+      const detalle = otras
+        .map((l) => `${fechaCorta(l.semana_inicio)} al ${fechaCorta(l.semana_fin)}`)
+        .join(', ')
+
+      return {
+        solapamiento: true,
+        error: `Este período se superpone con una liquidación ya generada (${detalle}). Si liquidás igual, esas horas se pagarían dos veces.`,
+      }
+    }
+  }
+
+  return generarLiquidacionSemana(
+    desde,
+    hasta,
+    opciones?.permitirIncompleta ?? false,
+    true
+  )
 }
 
 export async function generarLiquidacionSemanaAnterior() {
